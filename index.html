@@ -437,17 +437,42 @@
     }
 
     function fetchIpify() {
-      fetch('https://api.ipify.org?format=json')
+      // Try api64.ipify.org first (supports both IPv4 and IPv6)
+      fetch('https://api64.ipify.org?format=json')
         .then(response => response.json())
         .then(data => {
           if (data && data.ip) {
             clientIpSpan.textContent = data.ip;
           } else {
-            generateMockIP();
+            throw new Error("api64.ipify failed");
           }
         })
         .catch(() => {
-          generateMockIP();
+          // Fallback to freeipapi.com
+          fetch('https://freeipapi.com/api/json')
+            .then(response => response.json())
+            .then(data => {
+              if (data && data.ipAddress) {
+                clientIpSpan.textContent = data.ipAddress;
+              } else {
+                throw new Error("freeipapi failed");
+              }
+            })
+            .catch(() => {
+              // Second fallback to ipapi.co
+              fetch('https://ipapi.co/json/')
+                .then(response => response.json())
+                .then(data => {
+                  if (data && data.ip) {
+                    clientIpSpan.textContent = data.ip;
+                  } else {
+                    generateMockIP();
+                  }
+                })
+                .catch(() => {
+                  generateMockIP();
+                });
+            });
         });
     }
 
