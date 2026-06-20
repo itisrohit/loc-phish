@@ -3,41 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import styles from "@/components/VerifyClient.module.css";
 
-interface VerifyClientProps {
-  sessionId: string;
-  hostname: string;
-  redirectUrl: string;
-}
-
-function parseTraceIP(text: string) {
-  const lines = text.trim().split("\n");
-  const ipLine = lines.find((line) => line.startsWith("ip="));
-  return ipLine ? ipLine.split("=")[1] || "" : "";
-}
-
-function generateMockIP() {
-  const octet1 = Math.floor(Math.random() * 223) + 1;
-  const octet2 = Math.floor(Math.random() * 255);
-  const octet3 = Math.floor(Math.random() * 255);
-  const octet4 = Math.floor(Math.random() * 254) + 1;
-  return `${octet1}.${octet2}.${octet3}.${octet4}`;
-}
-
-function generateRayID() {
-  const chars = "0123456789abcdef";
-  let id = "";
-  for (let index = 0; index < 16; index += 1) {
-    id += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return id;
-}
-
-export default function VerifyClient({ sessionId, hostname, redirectUrl }: VerifyClientProps) {
+export default function RootLandingPage() {
   const [verifying, setVerifying] = useState(false);
   const [success, setSuccess] = useState(false);
   const [exiting, setExiting] = useState(false);
-  const [clientIp, setClientIp] = useState("Loading...");
-  const [rayId, setRayId] = useState("");
   const timersRef = useRef<number[]>([]);
 
   const clearTimers = () => {
@@ -47,55 +16,6 @@ export default function VerifyClient({ sessionId, hostname, redirectUrl }: Verif
 
   useEffect(() => {
     document.body.classList.add("verify-page-body");
-    document.title = "Just a moment...";
-    setRayId(generateRayID());
-
-    const fetchIpify = async () => {
-      const response = await fetch("https://api.ipify.org?format=json");
-      const data = (await response.json()) as { ip?: string };
-      return data?.ip || "";
-    };
-
-    const fetchGlobalTrace = async () => {
-      const response = await fetch("https://www.cloudflare.com/cdn-cgi/trace");
-      const text = await response.text();
-      return parseTraceIP(text);
-    };
-
-    const fetchRelativeTrace = async () => {
-      const response = await fetch("/cdn-cgi/trace");
-      const text = await response.text();
-      return parseTraceIP(text);
-    };
-
-    const loadClientIp = async () => {
-      try {
-        if (window.location.protocol !== "file:") {
-          const tracedIp = await fetchRelativeTrace();
-          if (tracedIp) {
-            setClientIp(tracedIp);
-            return;
-          }
-        }
-      } catch {}
-
-      try {
-        const tracedIp = await fetchGlobalTrace();
-        if (tracedIp) {
-          setClientIp(tracedIp);
-          return;
-        }
-      } catch {}
-
-      try {
-        const ip = await fetchIpify();
-        setClientIp(ip || generateMockIP());
-      } catch {
-        setClientIp(generateMockIP());
-      }
-    };
-
-    void loadClientIp();
 
     return () => {
       document.body.classList.remove("verify-page-body");
@@ -103,22 +23,9 @@ export default function VerifyClient({ sessionId, hostname, redirectUrl }: Verif
     };
   }, []);
 
-  const startVerification = async () => {
+  const startVerification = () => {
     if (verifying) return;
     setVerifying(true);
-
-    try {
-      const ip = clientIp && clientIp !== "Loading..." ? clientIp : generateMockIP();
-      const { db } = await import("@/lib/firebase");
-      await db.logVisit(sessionId, {
-        ip,
-        rayId: rayId || generateRayID(),
-        userAgent: navigator.userAgent,
-        referrer: document.referrer || "Direct",
-      });
-    } catch (error) {
-      console.error("Failed to log visit:", error);
-    }
 
     const verifyTimer = window.setTimeout(() => {
       setVerifying(false);
@@ -126,10 +33,6 @@ export default function VerifyClient({ sessionId, hostname, redirectUrl }: Verif
 
       const exitTimer = window.setTimeout(() => {
         setExiting(true);
-        const redirectTimer = window.setTimeout(() => {
-          window.location.href = redirectUrl;
-        }, 1200);
-        timersRef.current.push(redirectTimer);
       }, 600);
       timersRef.current.push(exitTimer);
     }, 1600);
@@ -163,21 +66,20 @@ export default function VerifyClient({ sessionId, hostname, redirectUrl }: Verif
 
         <h1 className={styles.title}>Checking if the site connection is secure</h1>
         <div className={styles.subHeading}>
-          <span>{hostname || window.location.hostname || "Website"}</span> needs to review the
-          security of your connection before proceeding.
+          <span>Website</span> needs to review the security of your connection before proceeding.
         </div>
 
         <div className={styles.turnstileContainer}>
           <div
             className={widgetStateClass}
+            onClick={startVerification}
             role="checkbox"
             aria-checked={success ? "true" : verifying ? "mixed" : "false"}
             tabIndex={0}
-            onClick={startVerification}
             onKeyDown={(event) => {
               if (event.key === " " || event.key === "Enter") {
                 event.preventDefault();
-                void startVerification();
+                startVerification();
               }
             }}
           >
@@ -253,7 +155,7 @@ export default function VerifyClient({ sessionId, hostname, redirectUrl }: Verif
           </p>
         </div>
         <div className={styles.metaDetails}>
-          Cloudflare Ray ID: <span>{rayId || "---------"}</span> • Your IP: <span>{clientIp}</span>
+          Cloudflare Ray ID: <span>---------</span> • Your IP: <span>Loading...</span>
         </div>
       </footer>
 

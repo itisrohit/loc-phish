@@ -1,0 +1,320 @@
+:global(body.verify-page-body) {
+  background-color: #ffffff;
+  color: #313131;
+  font-family:
+    -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell,
+    "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif !important;
+  font-size: 14px;
+  line-height: 1.5;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 36px 24px;
+  overflow-x: hidden;
+  background-image: none;
+}
+
+.shell,
+.shell * {
+  box-sizing: border-box;
+}
+
+.main {
+  max-width: 600px;
+  width: 100%;
+  margin: 12vh auto auto auto;
+  padding: 0 12px;
+}
+
+.logoHeader {
+  margin-bottom: 30px;
+}
+
+.logoCloud {
+  height: 48px;
+  fill: #f38020;
+}
+
+.title {
+  font-size: 32px;
+  font-weight: 500;
+  color: #000000;
+  margin-bottom: 8px;
+  letter-spacing: -0.5px;
+}
+
+.subHeading {
+  font-size: 16px;
+  color: #595959;
+  margin-bottom: 36px;
+  font-weight: 400;
+}
+
+.turnstileContainer {
+  margin-bottom: 40px;
+  min-height: 65px;
+}
+
+.turnstileWidget {
+  width: 300px;
+  height: 65px;
+  background-color: #fcfcfc;
+  border: 1px solid #d9d9d9;
+  border-radius: 3px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px;
+  user-select: none;
+  cursor: pointer;
+  position: relative;
+}
+
+.turnstileWidget:hover {
+  background-color: #f7f7f7;
+  border-color: #c8c8c8;
+}
+
+.widgetLeft {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.widgetCheckboxWrapper {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.widgetCheckbox {
+  width: 28px;
+  height: 28px;
+  border: 2px solid #4d4d4d;
+  border-radius: 4px;
+  background-color: #ffffff;
+  transition:
+    opacity 0.2s,
+    transform 0.2s;
+}
+
+.turnstileWidget:hover .widgetCheckbox {
+  border-color: #222222;
+}
+
+.widgetSpinner {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  border: 2px solid #2f80ed;
+  border-radius: 50%;
+  border-top-color: transparent;
+  opacity: 0;
+  transform: scale(0.8);
+  transition:
+    opacity 0.2s,
+    transform 0.2s;
+}
+
+.widgetCheckmark {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  color: #27ae60;
+  stroke-dasharray: 20;
+  stroke-dashoffset: 20;
+  opacity: 0;
+  transition:
+    opacity 0.15s,
+    stroke-dashoffset 0.35s ease-out;
+}
+
+.widgetLabel {
+  font-size: 14px;
+  color: #212121;
+  font-weight: 400;
+}
+
+.widgetRight {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 2px;
+}
+
+.widgetLogoContainer {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cloudflareText {
+  font-size: 10px;
+  font-weight: 800;
+  color: #000000;
+  letter-spacing: 0.5px;
+}
+
+.logoMiniCloud {
+  height: 18px;
+  fill: #f38020;
+}
+
+.widgetLinks {
+  font-size: 10px;
+  color: #666666;
+  display: flex;
+  gap: 6px;
+  margin-top: 1px;
+}
+
+.widgetLinks a {
+  color: #666666;
+  text-decoration: underline;
+}
+
+.widgetLinks a:hover {
+  color: #000000;
+}
+
+.stateChecking {
+  cursor: default;
+}
+
+.stateChecking .widgetCheckbox {
+  opacity: 0;
+  transform: scale(0.8);
+}
+
+.stateChecking .widgetSpinner {
+  opacity: 1;
+  transform: scale(1);
+  animation: verify-spin 0.8s linear infinite;
+}
+
+.stateSuccess {
+  cursor: default;
+  pointer-events: none;
+}
+
+.stateSuccess .widgetCheckbox {
+  opacity: 0;
+}
+
+.stateSuccess .widgetSpinner {
+  opacity: 0;
+}
+
+.stateSuccess .widgetCheckmark {
+  opacity: 1;
+  stroke-dashoffset: 0;
+}
+
+.infoSection {
+  border-top: 1px solid #eeeeee;
+  padding-top: 28px;
+  margin-top: 12px;
+}
+
+.infoTitle {
+  font-size: 15px;
+  font-weight: 500;
+  color: #313131;
+  margin-bottom: 8px;
+}
+
+.infoText {
+  color: #595959;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+.footer {
+  max-width: 600px;
+  width: 100%;
+  margin: auto auto 20px auto;
+  padding: 0 12px;
+  border-top: 1px solid #eeeeee;
+  padding-top: 20px;
+  color: #808080;
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.footerLinks {
+  display: flex;
+  gap: 12px;
+}
+
+.footerLinks a {
+  color: #595959;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.footerLinks a:hover {
+  color: #000000;
+}
+
+.metaDetails {
+  font-family: monospace;
+  font-size: 11px;
+  color: #808080;
+  word-break: break-all;
+  margin-top: 6px;
+}
+
+.metaDetails span {
+  color: #595959;
+}
+
+.exitOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.5s ease-in-out;
+  z-index: 9999;
+}
+
+.exitOverlayActive {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.exitSpinner {
+  width: 32px;
+  height: 32px;
+  border: 2px solid rgba(0, 0, 0, 0.1);
+  border-radius: 50%;
+  border-top-color: #f38020;
+  animation: verify-spin 0.8s linear infinite;
+  margin-bottom: 16px;
+}
+
+.exitText {
+  font-size: 15px;
+  color: #313131;
+}
+
+@keyframes verify-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
