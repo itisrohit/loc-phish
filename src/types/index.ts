@@ -1,0 +1,26 @@
+export interface User {
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+  photoURL: string | null;
+}
+
+export interface Campaign {
+  id: string;
+  name: string;
+  hostname: string;
+  redirect: string;
+  userId: string;
+  createdAt: string;
+}
+
+export interface VisitorLog {
+  id: string;
+  sessionId: string;
+  ip: string;
+  rayId: string;
+  userAgent: string;
+  referrer: string;
+  label?: string;
+  timestamp: string;
+}
