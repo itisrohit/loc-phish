@@ -84,24 +84,34 @@ export default function DashboardPage() {
     hostname: string;
     redirect: string;
   }) => {
-    if (!user) return;
-    const newCampaign = await db.createSession(user.uid, data);
-    await loadCampaigns();
-    setSelectedCampaign({
-      id: newCampaign.id,
-      name: newCampaign.name,
-      hostname: newCampaign.hostname,
-      redirect: newCampaign.redirect,
-      userId: newCampaign.userId,
-      createdAt: newCampaign.createdAt,
-    });
+    if (!user) throw new Error("Not authenticated");
+    try {
+      const newCampaign = await db.createSession(user.uid, data);
+      await loadCampaigns();
+      setSelectedCampaign({
+        id: newCampaign.id,
+        name: newCampaign.name,
+        hostname: newCampaign.hostname,
+        redirect: newCampaign.redirect,
+        userId: newCampaign.userId,
+        createdAt: newCampaign.createdAt,
+      });
+    } catch (err) {
+      console.error("Failed to create campaign:", err);
+      throw err;
+    }
   };
 
   const handleEditCampaign = async (data: { name: string; hostname: string; redirect: string }) => {
-    if (!editCampaign) return;
-    await db.updateSession(editCampaign.id, data);
-    setEditCampaign(null);
-    await loadCampaigns();
+    if (!editCampaign) throw new Error("No campaign selected");
+    try {
+      await db.updateSession(editCampaign.id, data);
+      setEditCampaign(null);
+      await loadCampaigns();
+    } catch (err) {
+      console.error("Failed to update campaign:", err);
+      throw err;
+    }
   };
 
   const handleDeleteCampaign = async (id: string, name: string) => {

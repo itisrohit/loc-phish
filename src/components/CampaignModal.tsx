@@ -22,10 +22,13 @@ export default function CampaignModal({
   const [redirect, setRedirect] = useState("");
   const nameRef = useRef<HTMLInputElement>(null);
 
+  const [error, setError] = useState("");
+
   const isEditing = !!editData;
 
   useEffect(() => {
     if (isOpen) {
+      setError("");
       if (editData) {
         setName(editData.name);
         setHostname(editData.hostname);
@@ -43,17 +46,23 @@ export default function CampaignModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
     const data = {
       name: name.trim(),
       hostname: hostname.trim(),
       redirect: redirect.trim(),
     };
-    if (isEditing && onSubmitEdit) {
-      await onSubmitEdit(data);
-    } else {
-      await onSubmit(data);
+    try {
+      if (isEditing && onSubmitEdit) {
+        await onSubmitEdit(data);
+      } else {
+        await onSubmit(data);
+      }
+      onClose();
+    } catch (err) {
+      console.error("Campaign save failed:", err);
+      setError(err instanceof Error ? err.message : "Failed to save campaign");
     }
-    onClose();
   };
 
   return (
@@ -66,6 +75,21 @@ export default function CampaignModal({
           </button>
         </div>
         <form onSubmit={handleSubmit}>
+          {error && (
+            <div
+              style={{
+                marginBottom: "16px",
+                padding: "12px",
+                borderRadius: "8px",
+                background: "rgba(248, 113, 113, 0.08)",
+                border: "1px solid rgba(248, 113, 113, 0.2)",
+                color: "#f87171",
+                fontSize: "13px",
+              }}
+            >
+              {error}
+            </div>
+          )}
           <div className="form-group">
             <label htmlFor="campaignName">Session Name</label>
             <input
@@ -94,7 +118,7 @@ export default function CampaignModal({
           <div className="form-group">
             <label htmlFor="campaignRedirect">Redirect Target URL</label>
             <input
-              type="url"
+              type="text"
               id="campaignRedirect"
               className="form-control"
               placeholder="e.g., https://instagram.com"
