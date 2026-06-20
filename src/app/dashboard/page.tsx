@@ -181,8 +181,13 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="loading-screen" style={{ minHeight: "100vh" }}>
-        <div className="loading-text">Loading secure portal...</div>
+      <div className="dashboard-root loading-root">
+        <div className="dashboard-ambient">
+          <div className="dashboard-grid" />
+        </div>
+        <div className="loading-text">
+          LOADING_SYSTEM...
+        </div>
       </div>
     );
   }
@@ -199,7 +204,13 @@ export default function DashboardPage() {
   };
 
   return (
-    <div>
+    <div className="dashboard-root">
+      {/* Dynamic Background */}
+      <div className="dashboard-ambient">
+        <div className="dashboard-grid" />
+        <div className="dashboard-glow" />
+      </div>
+
       <Header isMock={auth.isMock} userEmail={user.email || ""} onLogout={handleLogout} />
 
       {showDesktopLayout ? (
@@ -215,6 +226,7 @@ export default function DashboardPage() {
             <CampaignDetail
               campaign={selectedCampaign}
               onEdit={() => setEditCampaign(selectedCampaign)}
+              onRefresh={loadCampaigns}
             />
           )}
         </main>
@@ -233,6 +245,7 @@ export default function DashboardPage() {
           <CampaignDetail
             campaign={selectedCampaign}
             onEdit={() => setEditCampaign(selectedCampaign)}
+            onRefresh={loadCampaigns}
             onBack={() => setSelectedCampaign(null)}
             showBackButton
           />
@@ -242,72 +255,25 @@ export default function DashboardPage() {
           <div className="dashboard-card onboarding-card">
             <div className="empty-state-visual">
               <svg
-                style={{ width: "64px", height: "64px" }}
+                style={{ width: "48px", height: "48px" }}
                 viewBox="0 0 64 64"
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
               >
-                <circle
-                  cx="32"
-                  cy="32"
-                  r="28"
-                  stroke="rgba(224, 169, 140, 0.12)"
-                  strokeWidth="1.5"
-                  strokeDasharray="4 4"
-                />
-                <circle
-                  cx="32"
-                  cy="32"
-                  r="20"
-                  stroke="rgba(224, 169, 140, 0.22)"
-                  strokeWidth="1.5"
-                />
-                <circle
-                  cx="32"
-                  cy="32"
-                  r="10"
-                  stroke="rgba(224, 169, 140, 0.35)"
-                  strokeWidth="1.5"
-                />
-                <line
-                  x1="32"
-                  y1="4"
-                  x2="32"
-                  y2="60"
-                  stroke="rgba(224, 169, 140, 0.15)"
-                  strokeWidth="1.5"
-                />
-                <line
-                  x1="4"
-                  y1="32"
-                  x2="60"
-                  y2="32"
-                  stroke="rgba(224, 169, 140, 0.15)"
-                  strokeWidth="1.5"
-                />
-                <line
-                  x1="32"
-                  y1="32"
-                  x2="50"
-                  y2="14"
-                  stroke="#e0a98c"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  className="radar-hand"
-                  style={{ transformOrigin: "32px 32px" }}
-                />
+                <rect x="12" y="12" width="40" height="40" stroke="var(--color-rose)" strokeWidth="0.5" strokeDasharray="4 4" />
+                <path d="M32 20 V44 M20 32 H44" stroke="var(--color-rose)" strokeWidth="0.5" />
+                <circle cx="32" cy="32" r="2" fill="var(--color-rose)" />
               </svg>
             </div>
-            <h2>Welcome to the Control Room</h2>
+            <h2>DASHBOARD</h2>
             <p>
-              Configure a Turnstile-cloaked redirect campaign session to inspect real-time visitor
-              traffic and device telemetry.
+              No active campaigns found. <br /> Create a new campaign to start tracking.
             </p>
             <button
               className="btn btn-primary onboarding-cta"
               onClick={() => setShowCreateModal(true)}
             >
-              ➕ Create Campaign
+              New Campaign
             </button>
           </div>
         </div>

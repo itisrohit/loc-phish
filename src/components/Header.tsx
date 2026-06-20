@@ -6,19 +6,22 @@ interface HeaderProps {
   onLogout: () => void;
 }
 
-export default function Header({ isMock, userEmail, onLogout }: HeaderProps) {
+export default function Header({ userEmail, onLogout }: HeaderProps) {
   return (
-    <header>
+    <header className="dashboard-header">
       <div className="logo-container">
-        <span className="logo-icon">🛡️</span>
-        <span className="logo-text">loc-phish</span>
+        <span className="logo-text">
+          LP <span style={{ opacity: 0.4 }}>/</span> CONTROL_CENTER
+        </span>
       </div>
       <div className="nav-actions">
-        <span className={`mode-badge ${!isMock ? "real" : ""}`}>
-          {isMock ? "Mock DB" : "Cloud Firebase"}
-        </span>
-        <span className="user-email-display">{userEmail}</span>
-        <button onClick={onLogout} className="btn btn-secondary">
+        <div className="system-status">
+          <div className="status-bar">
+            <div className="status-bar-fill"></div>
+          </div>
+        </div>
+        <span className="user-email-display mono">{userEmail}</span>
+        <button onClick={onLogout} className="sign-out-trigger">
           Logout
         </button>
       </div>

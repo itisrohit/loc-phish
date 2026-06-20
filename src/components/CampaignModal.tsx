@@ -78,59 +78,54 @@ export default function CampaignModal({
     <div className="modal-overlay" onClick={onClose}>
       <div className="dashboard-card modal-card" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2 className="modal-title">{isEditing ? "✏️ Edit Campaign" : "➕ Create Session"}</h2>
+          <h2 className="modal-title">
+            {isEditing ? "Edit Campaign" : "New Campaign"}
+          </h2>
           <button className="close-modal-x" onClick={onClose}>
-            ✕
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
           </button>
         </div>
         <form onSubmit={handleSubmit}>
           {error && (
-            <div
-              style={{
-                marginBottom: "16px",
-                padding: "12px",
-                borderRadius: "8px",
-                background: "rgba(248, 113, 113, 0.08)",
-                border: "1px solid rgba(248, 113, 113, 0.2)",
-                color: "#f87171",
-                fontSize: "13px",
-              }}
-            >
-              {error}
+            <div className="modal-error">
+              [ERROR]: {error}
             </div>
           )}
           <div className="form-group">
-            <label htmlFor="campaignName">Session Name</label>
+            <label htmlFor="campaignName">Campaign Name</label>
             <input
               ref={nameRef}
               type="text"
               id="campaignName"
               className="form-control"
-              placeholder="e.g., Instagram Campaign"
+              placeholder="Internal Test"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
             />
           </div>
           <div className="form-group">
-            <label htmlFor="campaignHostname">Fake Hostname (Turnstile Display)</label>
+            <label htmlFor="campaignHostname">Fake Domain</label>
             <input
               type="text"
               id="campaignHostname"
               className="form-control"
-              placeholder="e.g., instagram.com"
+              placeholder="google.com"
               value={hostname}
               onChange={(e) => setHostname(e.target.value)}
               required
             />
           </div>
           <div className="form-group">
-            <label htmlFor="campaignRedirect">Redirect Target URL</label>
+            <label htmlFor="campaignRedirect">Redirect URL</label>
             <input
               type="text"
               id="campaignRedirect"
               className="form-control"
-              placeholder="e.g., https://instagram.com"
+              placeholder="https://my-actual-site.com"
               value={redirect}
               onChange={(e) => setRedirect(e.target.value)}
               required

@@ -1,0 +1,222 @@
+.container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: #050505;
+  color: #fff;
+  position: relative;
+  overflow: hidden;
+  padding: 2rem;
+}
+
+.ambient {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: 
+    radial-gradient(circle at 2px 2px, rgba(224, 169, 140, 0.05) 1px, transparent 0);
+  background-size: 40px 40px;
+}
+
+.scanLine {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    transparent 50%,
+    rgba(224, 169, 140, 0.02) 50%,
+    rgba(224, 169, 140, 0.02)
+  );
+  background-size: 100% 4px;
+  opacity: 0.5;
+}
+
+@keyframes pulseOpacity {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.7; }
+}
+
+.ambient::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 50%, rgba(224, 169, 140, 0.03) 0%, transparent 80%);
+  animation: pulseOpacity 8s ease-in-out infinite;
+}
+
+.card {
+  width: 100%;
+  max-width: 400px;
+  background: rgba(10, 10, 12, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  padding: 3.5rem 2.5rem;
+  backdrop-filter: blur(20px);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  box-shadow: 0 40px 80px rgba(0, 0, 0, 0.8);
+  animation: fadeIn 0.8s ease-out;
+}
+
+.iconWrapper {
+  width: 52px;
+  height: 52px;
+  border-radius: 4px;
+  background: rgba(224, 169, 140, 0.03);
+  border: 1px solid rgba(224, 169, 140, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 2.5rem;
+  position: relative;
+}
+
+.title {
+  font-family: var(--font-sans);
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.75rem;
+  color: #fff;
+}
+
+.subtitle {
+  font-size: 0.85rem;
+  color: #52525b;
+  line-height: 1.6;
+  margin-bottom: 3rem;
+  font-weight: 400;
+}
+
+.googleBtn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 12px;
+  border-radius: 4px;
+  background: transparent;
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.googleBtn:hover {
+  background: #fff;
+  color: #000;
+  border-color: #fff;
+}
+
+.error {
+  margin-top: 1.5rem;
+  padding: 0.75rem;
+  border-radius: 4px;
+  background: rgba(248, 113, 113, 0.05);
+  border: 1px solid rgba(248, 113, 113, 0.1);
+  color: #f87171;
+  font-size: 0.8rem;
+  width: 100%;
+}
+
+.footer {
+  position: absolute;
+  bottom: 3rem;
+  color: #27272a;
+  font-size: 0.7rem;
+  font-family: var(--font-mono);
+  letter-spacing: 0.2em;
+  z-index: 10;
+  text-transform: uppercase;
+}
+
+.loginNav {
+  position: absolute;
+  top: 2rem;
+  left: 2rem;
+  z-index: 20;
+}
+
+.backLink {
+  background: transparent;
+  border: none;
+  color: #52525b;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.backLink:hover {
+  color: #fff;
+}
+
+.backLink svg {
+  opacity: 0.5;
+  transition: transform 0.2s ease;
+}
+
+.backLink:hover svg {
+  transform: translateX(-4px);
+  opacity: 1;
+}
+
+@keyframes scan {
+  from { transform: translateY(0); }
+  to { transform: translateY(4px); }
+}
+
+.scanLine {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    transparent 50%,
+    rgba(224, 169, 140, 0.02) 50%,
+    rgba(224, 169, 140, 0.02)
+  );
+  background-size: 100% 4px;
+  opacity: 0.5;
+  animation: scan 0.2s linear infinite;
+}
+
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 480px) {
+  .card {
+    padding: 2.5rem 1.5rem;
+    border: none;
+    background: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
+  }
+}
