@@ -1125,6 +1125,25 @@ body {
   color: var(--color-text-muted);
 }
 
+.preview-error-banner {
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: rgba(248, 113, 113, 0.08);
+  border: 1px solid rgba(248, 113, 113, 0.2);
+  color: #f87171;
+  font-size: 12px;
+}
+
+.refresh-logs-btn[disabled] {
+  cursor: wait;
+  opacity: 0.9;
+}
+
+.refresh-logs-btn.is-refreshing {
+  animation: spin 0.8s linear infinite;
+}
+
 /* ==========================================
    TABLE
    ========================================== */

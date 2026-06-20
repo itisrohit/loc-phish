@@ -12,6 +12,11 @@ export interface Campaign {
   redirect: string;
   userId: string;
   createdAt: string;
+  publicSlug: string;
+  previewTitle?: string;
+  previewDescription?: string;
+  previewImage?: string;
+  previewSiteName?: string;
 }
 
 export interface IpLookup {
@@ -38,7 +43,5 @@ export interface VisitorLog {
   userAgent: string;
   referrer: string;
   label?: string;
-  ipLookup?: IpLookup;
-  ipLookupFetchedAt?: string;
   timestamp: string;
 }

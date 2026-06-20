@@ -15,11 +15,13 @@ import {
   query,
   where,
   orderBy,
+  limit,
   addDoc,
   deleteDoc,
   updateDoc,
 } from "firebase/firestore";
-import type { IpLookup, VisitorLog } from "@/types";
+import type { Campaign, VisitorLog } from "@/types";
+import { createUniquePublicSlug } from "@/lib/public-links";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -135,6 +137,61 @@ function triggerMockAuthStateChange(user: AuthUser | null) {
   mockAuthListeners.forEach((cb) => cb(user));
 }
 
+async function requestMock<T>(input: string, init?: RequestInit) {
+  const response = await fetch(`/api/mock/${input}`, {
+    ...init,
+    headers: {
+      "Content-Type": "application/json",
+      ...(init?.headers ?? {}),
+    },
+  });
+
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => ({}))) as { error?: string };
+    throw new Error(payload.error || `Mock request failed: ${response.status}`);
+  }
+
+  if (response.status === 204) {
+    return null as T;
+  }
+
+  return (await response.json()) as T;
+}
+
+async function slugExistsInFirestore(slug: string) {
+  if (!realDb) return false;
+  const slugQuery = query(collection(realDb, "sessions"), where("publicSlug", "==", slug), limit(1));
+  const snapshot = await getDocs(slugQuery);
+  return !snapshot.empty;
+}
+
+async function ensureFirestoreSessionSlug(sessionId: string, data: Record<string, unknown>) {
+  const currentSlug = typeof data.publicSlug === "string" ? data.publicSlug.trim() : "";
+  if (currentSlug) return currentSlug;
+  if (!realDb) return "";
+
+  const publicSlug = await createUniquePublicSlug(slugExistsInFirestore);
+  await updateDoc(doc(realDb, "sessions", sessionId), { publicSlug });
+  data.publicSlug = publicSlug;
+  return publicSlug;
+}
+
+function mapCampaign(sessionId: string, data: Record<string, unknown>): Campaign {
+  return {
+    id: sessionId,
+    name: String(data.name ?? ""),
+    hostname: String(data.hostname ?? ""),
+    redirect: String(data.redirect ?? ""),
+    userId: String(data.userId ?? ""),
+    createdAt: String(data.createdAt ?? ""),
+    publicSlug: String(data.publicSlug ?? ""),
+    previewTitle: data.previewTitle ? String(data.previewTitle) : undefined,
+    previewDescription: data.previewDescription ? String(data.previewDescription) : undefined,
+    previewImage: data.previewImage ? String(data.previewImage) : undefined,
+    previewSiteName: data.previewSiteName ? String(data.previewSiteName) : undefined,
+  };
+}
+
 // ==========================================
 // UNIFIED DATABASE INTERFACE
 // ==========================================
@@ -144,12 +201,25 @@ export const db = {
       const docRef = doc(realDb, "sessions", sessionId);
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
-        return { id: docSnap.id, ...docSnap.data() };
+        const data = docSnap.data() as Record<string, unknown>;
+        await ensureFirestoreSessionSlug(docSnap.id, data);
+        return { id: docSnap.id, ...data };
       }
       return null;
     } else {
-      const sessions = JSON.parse(localStorage.getItem("mock_sessions") || "[]");
-      return sessions.find((s: { id: string }) => s.id === sessionId) || null;
+      return requestMock<Campaign | null>(`sessions/${sessionId}`);
+    }
+  },
+
+  getSessionBySlug: async (publicSlug: string) => {
+    if (isFirebaseConfigured && realDb) {
+      const q = query(collection(realDb, "sessions"), where("publicSlug", "==", publicSlug));
+      const querySnapshot = await getDocs(q);
+      const match = querySnapshot.docs[0];
+      if (!match) return null;
+      return { id: match.id, ...match.data() };
+    } else {
+      return requestMock<Campaign | null>(`sessions/slug/${publicSlug}`);
     }
   },
 
@@ -157,24 +227,23 @@ export const db = {
     userId: string,
     sessionData: { name: string; hostname: string; redirect: string }
   ) => {
-    const data = {
-      ...sessionData,
-      userId,
-      createdAt: new Date().toISOString(),
-    };
-
     if (isFirebaseConfigured && realDb) {
+      const data = {
+        ...sessionData,
+        userId,
+        createdAt: new Date().toISOString(),
+        publicSlug: await createUniquePublicSlug(slugExistsInFirestore),
+      };
       const docRef = await addDoc(collection(realDb, "sessions"), data);
       return { id: docRef.id, ...data };
     } else {
-      const sessions = JSON.parse(localStorage.getItem("mock_sessions") || "[]");
-      const newSession = {
-        id: "session-" + Math.random().toString(36).substr(2, 9),
-        ...data,
-      };
-      sessions.push(newSession);
-      localStorage.setItem("mock_sessions", JSON.stringify(sessions));
-      return newSession;
+      return requestMock<Campaign>("sessions", {
+        method: "POST",
+        body: JSON.stringify({
+          userId,
+          ...sessionData,
+        }),
+      });
     }
   },
 
@@ -186,33 +255,22 @@ export const db = {
         orderBy("createdAt", "desc")
       );
       const querySnapshot = await getDocs(q);
-      const result: Array<{
-        id: string;
-        name: string;
-        hostname: string;
-        redirect: string;
-        userId: string;
-        createdAt: string;
-      }> = [];
+      const result: Campaign[] = [];
       querySnapshot.forEach((d) => {
-        const data = d.data();
-        result.push({
-          id: d.id,
-          name: String(data.name ?? ""),
-          hostname: String(data.hostname ?? ""),
-          redirect: String(data.redirect ?? ""),
-          userId: String(data.userId ?? ""),
-          createdAt: String(data.createdAt ?? ""),
-        });
+        const data = d.data() as Record<string, unknown>;
+        result.push(mapCampaign(d.id, data));
       });
+      await Promise.all(
+        result
+          .filter((session) => !session.publicSlug)
+          .map(async (session) => {
+            session.publicSlug = await createUniquePublicSlug(slugExistsInFirestore);
+            await updateDoc(doc(realDb, "sessions", session.id), { publicSlug: session.publicSlug });
+          })
+      );
       return result;
     } else {
-      const sessions = JSON.parse(localStorage.getItem("mock_sessions") || "[]");
-      return sessions
-        .filter((s: { userId: string }) => s.userId === userId)
-        .sort((a: { createdAt: string }, b: { createdAt: string }) =>
-          b.createdAt.localeCompare(a.createdAt)
-        );
+      return requestMock<Campaign[]>(`sessions?userId=${encodeURIComponent(userId)}`);
     }
   },
 
@@ -220,13 +278,7 @@ export const db = {
     if (isFirebaseConfigured && realDb) {
       await deleteDoc(doc(realDb, "sessions", sessionId));
     } else {
-      let sessions = JSON.parse(localStorage.getItem("mock_sessions") || "[]");
-      sessions = sessions.filter((s: { id: string }) => s.id !== sessionId);
-      localStorage.setItem("mock_sessions", JSON.stringify(sessions));
-
-      let logs = JSON.parse(localStorage.getItem("mock_logs") || "[]");
-      logs = logs.filter((l: { sessionId: string }) => l.sessionId !== sessionId);
-      localStorage.setItem("mock_logs", JSON.stringify(logs));
+      await requestMock(`sessions/${sessionId}`, { method: "DELETE" });
     }
   },
 
@@ -247,13 +299,10 @@ export const db = {
     if (isFirebaseConfigured && realDb) {
       await addDoc(collection(realDb, `sessions/${sessionId}/logs`), data);
     } else {
-      const logs = JSON.parse(localStorage.getItem("mock_logs") || "[]");
-      logs.push({
-        id: "log-" + Math.random().toString(36).substr(2, 9),
-        sessionId,
-        ...data,
+      await requestMock(`sessions/${sessionId}/logs`, {
+        method: "POST",
+        body: JSON.stringify(data),
       });
-      localStorage.setItem("mock_logs", JSON.stringify(logs));
     }
   },
 
@@ -264,18 +313,7 @@ export const db = {
         orderBy("timestamp", "desc")
       );
       const querySnapshot = await getDocs(q);
-      const result: Array<{
-        id: string;
-        sessionId: string;
-        ip: string;
-        rayId: string;
-        userAgent: string;
-        referrer: string;
-        label?: string;
-        ipLookup?: IpLookup;
-        ipLookupFetchedAt?: string;
-        timestamp: string;
-      }> = [];
+      const result: VisitorLog[] = [];
       querySnapshot.forEach((d) => {
         const data = d.data();
         result.push({
@@ -286,21 +324,12 @@ export const db = {
           userAgent: String(data.userAgent ?? ""),
           referrer: String(data.referrer ?? ""),
           label: data.label ? String(data.label) : undefined,
-          ipLookup: data.ipLookup ? (data.ipLookup as IpLookup) : undefined,
-          ipLookupFetchedAt: data.ipLookupFetchedAt
-            ? String(data.ipLookupFetchedAt)
-            : undefined,
           timestamp: String(data.timestamp ?? ""),
         });
       });
       return result;
     } else {
-      const logs = JSON.parse(localStorage.getItem("mock_logs") || "[]");
-      return logs
-        .filter((l: { sessionId: string }) => l.sessionId === sessionId)
-        .sort((a: { timestamp: string }, b: { timestamp: string }) =>
-          b.timestamp.localeCompare(a.timestamp)
-        );
+      return requestMock<VisitorLog[]>(`sessions/${sessionId}/logs`);
     }
   },
 
@@ -311,12 +340,27 @@ export const db = {
     if (isFirebaseConfigured && realDb) {
       await updateDoc(doc(realDb, "sessions", sessionId), updateData);
     } else {
-      const sessions = JSON.parse(localStorage.getItem("mock_sessions") || "[]");
-      const idx = sessions.findIndex((s: { id: string }) => s.id === sessionId);
-      if (idx > -1) {
-        sessions[idx] = { ...sessions[idx], ...updateData };
-        localStorage.setItem("mock_sessions", JSON.stringify(sessions));
-      }
+      await requestMock(`sessions/${sessionId}`, {
+        method: "PATCH",
+        body: JSON.stringify(updateData),
+      });
+    }
+  },
+
+  updateSessionPreview: async (
+    sessionId: string,
+    updateData: Pick<
+      Campaign,
+      "previewTitle" | "previewDescription" | "previewImage" | "previewSiteName"
+    >
+  ) => {
+    if (isFirebaseConfigured && realDb) {
+      await updateDoc(doc(realDb, "sessions", sessionId), updateData);
+    } else {
+      await requestMock(`sessions/${sessionId}`, {
+        method: "PATCH",
+        body: JSON.stringify(updateData),
+      });
     }
   },
 
@@ -324,26 +368,18 @@ export const db = {
     if (isFirebaseConfigured && realDb) {
       await deleteDoc(doc(realDb, `sessions/${sessionId}/logs`, logId));
     } else {
-      let logs = JSON.parse(localStorage.getItem("mock_logs") || "[]");
-      logs = logs.filter((l: { id: string }) => l.id !== logId);
-      localStorage.setItem("mock_logs", JSON.stringify(logs));
+      await requestMock(`sessions/${sessionId}/logs/${logId}`, { method: "DELETE" });
     }
   },
 
-  updateLog: async (
-    sessionId: string,
-    logId: string,
-    updateData: Partial<Pick<VisitorLog, "label" | "ipLookup" | "ipLookupFetchedAt">>
-  ) => {
+  updateLog: async (sessionId: string, logId: string, updateData: Partial<Pick<VisitorLog, "label">>) => {
     if (isFirebaseConfigured && realDb) {
       await updateDoc(doc(realDb, `sessions/${sessionId}/logs`, logId), updateData);
     } else {
-      const logs = JSON.parse(localStorage.getItem("mock_logs") || "[]");
-      const idx = logs.findIndex((l: { id: string }) => l.id === logId);
-      if (idx > -1) {
-        logs[idx] = { ...logs[idx], ...updateData };
-        localStorage.setItem("mock_logs", JSON.stringify(logs));
-      }
+      await requestMock(`sessions/${sessionId}/logs/${logId}`, {
+        method: "PATCH",
+        body: JSON.stringify(updateData),
+      });
     }
   },
 };

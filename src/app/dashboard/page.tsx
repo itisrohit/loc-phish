@@ -66,6 +66,11 @@ export default function DashboardPage() {
           redirect: string;
           userId: string;
           createdAt: string;
+          publicSlug: string;
+          previewTitle?: string;
+          previewDescription?: string;
+          previewImage?: string;
+          previewSiteName?: string;
         }) => ({
           id: s.id,
           name: String(s.name ?? ""),
@@ -73,6 +78,11 @@ export default function DashboardPage() {
           redirect: String(s.redirect ?? ""),
           userId: String(s.userId ?? ""),
           createdAt: String(s.createdAt ?? ""),
+          publicSlug: String(s.publicSlug ?? ""),
+          previewTitle: s.previewTitle,
+          previewDescription: s.previewDescription,
+          previewImage: s.previewImage,
+          previewSiteName: s.previewSiteName,
         })
       );
       setCampaigns((current) => {
@@ -86,7 +96,12 @@ export default function DashboardPage() {
               campaign.name === nextCampaign.name &&
               campaign.hostname === nextCampaign.hostname &&
               campaign.redirect === nextCampaign.redirect &&
-              campaign.createdAt === nextCampaign.createdAt
+              campaign.createdAt === nextCampaign.createdAt &&
+              campaign.publicSlug === nextCampaign.publicSlug &&
+              campaign.previewTitle === nextCampaign.previewTitle &&
+              campaign.previewDescription === nextCampaign.previewDescription &&
+              campaign.previewImage === nextCampaign.previewImage &&
+              campaign.previewSiteName === nextCampaign.previewSiteName
             );
           });
 
@@ -134,6 +149,7 @@ export default function DashboardPage() {
         redirect: newCampaign.redirect,
         userId: newCampaign.userId,
         createdAt: newCampaign.createdAt,
+        publicSlug: newCampaign.publicSlug,
       });
     } catch (err) {
       console.error("Failed to create campaign:", err);

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { Campaign, IpLookup, VisitorLog } from "@/types";
 import { db } from "@/lib/firebase";
+import { buildCampaignLink } from "@/lib/public-links";
 
 interface CampaignDetailProps {
   campaign: Campaign;
@@ -22,33 +23,40 @@ export default function CampaignDetail({
   const [toastVisible, setToastVisible] = useState(false);
   const [selectedLog, setSelectedLog] = useState<VisitorLog | null>(null);
   const [detailLabel, setDetailLabel] = useState("");
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [previewReady, setPreviewReady] = useState(
+    !!(campaign.previewTitle || campaign.previewDescription || campaign.previewImage)
+  );
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState("");
   const [ipInfoVisible, setIpInfoVisible] = useState(false);
+  const [ipLookup, setIpLookup] = useState<IpLookup | null>(null);
   const [ipLookupLoading, setIpLookupLoading] = useState(false);
   const [ipLookupError, setIpLookupError] = useState("");
   const toastTimeoutRef = useRef<number | null>(null);
 
   const origin = typeof window !== "undefined" ? window.location.origin : "";
-  const linkUrl = `${origin}/verify?s=${campaign.id}`;
+  const linkUrl = buildCampaignLink(origin, campaign);
   const mapUrl =
-    selectedLog?.ipLookup &&
-    Number.isFinite(selectedLog.ipLookup.lat) &&
-    Number.isFinite(selectedLog.ipLookup.lon)
-      ? `https://www.google.com/maps?q=${selectedLog.ipLookup.lat},${selectedLog.ipLookup.lon}`
+    ipLookup &&
+    Number.isFinite(ipLookup.lat) &&
+    Number.isFinite(ipLookup.lon)
+      ? `https://www.google.com/maps?q=${ipLookup.lat},${ipLookup.lon}`
       : null;
-  const ipLookupDetails = selectedLog?.ipLookup
+  const ipLookupDetails = ipLookup
     ? [
-        { label: "Country", value: `${selectedLog.ipLookup.country} (${selectedLog.ipLookup.countryCode})` },
+        { label: "Country", value: `${ipLookup.country} (${ipLookup.countryCode})` },
         {
           label: "Region",
-          value: selectedLog.ipLookup.regionName || selectedLog.ipLookup.region || "Unknown",
+          value: ipLookup.regionName || ipLookup.region || "Unknown",
         },
-        { label: "City", value: selectedLog.ipLookup.city || "Unknown" },
-        { label: "ZIP", value: selectedLog.ipLookup.zip || "Unknown" },
-        { label: "Timezone", value: selectedLog.ipLookup.timezone || "Unknown" },
-        { label: "Coordinates", value: `${selectedLog.ipLookup.lat}, ${selectedLog.ipLookup.lon}` },
-        { label: "ISP", value: selectedLog.ipLookup.isp || "Unknown" },
-        { label: "Organization", value: selectedLog.ipLookup.org || "Unknown" },
-        { label: "ASN", value: selectedLog.ipLookup.as || "Unknown" },
+        { label: "City", value: ipLookup.city || "Unknown" },
+        { label: "ZIP", value: ipLookup.zip || "Unknown" },
+        { label: "Timezone", value: ipLookup.timezone || "Unknown" },
+        { label: "Coordinates", value: `${ipLookup.lat}, ${ipLookup.lon}` },
+        { label: "ISP", value: ipLookup.isp || "Unknown" },
+        { label: "Organization", value: ipLookup.org || "Unknown" },
+        { label: "ASN", value: ipLookup.as || "Unknown" },
       ]
     : [];
 
@@ -56,6 +64,7 @@ export default function CampaignDetail({
     setSelectedLog(log);
     setDetailLabel(log.label || "");
     setIpInfoVisible(false);
+    setIpLookup(null);
     setIpLookupLoading(false);
     setIpLookupError("");
   }, []);
@@ -65,12 +74,21 @@ export default function CampaignDetail({
     setSelectedLog((current) => (current?.id === logId ? { ...current, ...patch } : current));
   }, []);
 
-  const loadLogs = useCallback(async () => {
+  const loadLogs = useCallback(async (options?: { force?: boolean; showLoading?: boolean }) => {
+    const force = options?.force ?? false;
+    const showLoading = options?.showLoading ?? false;
+
+    if (showLoading) {
+      setIsRefreshing(true);
+    }
+
     try {
       const data = await db.getLogs(campaign.id);
       const nextLogs = data as VisitorLog[];
 
       setLogs((current) => {
+        if (force) return nextLogs;
+
         const isUnchanged =
           current.length === nextLogs.length &&
           current.every((log, index) => {
@@ -96,26 +114,19 @@ export default function CampaignDetail({
       });
     } catch (err) {
       console.error("Error loading logs:", err);
+    } finally {
+      if (showLoading) {
+        setIsRefreshing(false);
+      }
     }
   }, [campaign.id]);
 
   useEffect(() => {
-    loadLogs();
-    const refreshIfVisible = () => {
-      if (document.visibilityState === "visible") {
-        void loadLogs();
-      }
-    };
+    setPreviewReady(!!(campaign.previewTitle || campaign.previewDescription || campaign.previewImage));
+  }, [campaign.previewDescription, campaign.previewImage, campaign.previewTitle]);
 
-    const interval = window.setInterval(refreshIfVisible, 12000);
-    document.addEventListener("visibilitychange", refreshIfVisible);
-    window.addEventListener("focus", refreshIfVisible);
-
-    return () => {
-      window.clearInterval(interval);
-      document.removeEventListener("visibilitychange", refreshIfVisible);
-      window.removeEventListener("focus", refreshIfVisible);
-    };
+  useEffect(() => {
+    void loadLogs();
   }, [loadLogs]);
 
   useEffect(() => {
@@ -154,12 +165,39 @@ export default function CampaignDetail({
     }
   };
 
+  const handlePreparePreview = async () => {
+    setPreviewLoading(true);
+    setPreviewError("");
+
+    try {
+      const response = await fetch("/api/session-preview", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ sessionId: campaign.id }),
+      });
+      const payload = (await response.json()) as { error?: string };
+
+      if (!response.ok) {
+        throw new Error(payload.error || "Failed to prepare preview metadata");
+      }
+
+      setPreviewReady(true);
+    } catch (err) {
+      console.error("Failed to prepare preview metadata:", err);
+      setPreviewError(err instanceof Error ? err.message : "Failed to prepare preview metadata");
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
   const toggleIpInfo = async () => {
     if (!selectedLog) return;
 
     const nextVisible = !ipInfoVisible;
     setIpInfoVisible(nextVisible);
-    if (!nextVisible || selectedLog.ipLookup || ipLookupLoading) return;
+    if (!nextVisible || ipLookup || ipLookupLoading) return;
 
     setIpLookupError("");
     setIpLookupLoading(true);
@@ -172,14 +210,7 @@ export default function CampaignDetail({
         throw new Error("error" in payload ? payload.error || "Lookup failed" : "Lookup failed");
       }
 
-      const fetchedAt = new Date().toISOString();
-      const patch = {
-        ipLookup: payload as IpLookup,
-        ipLookupFetchedAt: fetchedAt,
-      };
-
-      patchLogState(selectedLog.id, patch);
-      await db.updateLog(campaign.id, selectedLog.id, patch);
+      setIpLookup(payload as IpLookup);
     } catch (err) {
       console.error("IP lookup failed:", err);
       setIpLookupError(err instanceof Error ? err.message : "Failed to load IP details");
@@ -195,6 +226,10 @@ export default function CampaignDetail({
       setSelectedLog(null);
       await loadLogs();
     }
+  };
+
+  const handleManualRefresh = async () => {
+    await loadLogs({ force: true, showLoading: true });
   };
 
   return (
@@ -229,6 +264,18 @@ export default function CampaignDetail({
               <div className="link-copy-container">
                 <span className="generated-url">{linkUrl}</span>
                 <button
+                  onClick={handlePreparePreview}
+                  className="btn btn-secondary"
+                  style={{
+                    padding: "6px 14px",
+                    fontSize: "12px",
+                    whiteSpace: "nowrap",
+                  }}
+                  disabled={previewLoading}
+                >
+                  {previewLoading ? "Preparing..." : previewReady ? "Preview Ready" : "Prepare Preview"}
+                </button>
+                <button
                   onClick={copyLink}
                   className="btn btn-primary"
                   style={{
@@ -242,15 +289,18 @@ export default function CampaignDetail({
                 </button>
               </div>
             </div>
+            {previewError && <div className="preview-error-banner">{previewError}</div>}
 
             {/* Logs Sub-header */}
             <div className="logs-controls-row">
               <h3 className="logs-subheading">Visitor Records</h3>
               <button
-                onClick={loadLogs}
-                className="btn btn-secondary"
+                onClick={handleManualRefresh}
+                className={`btn btn-secondary refresh-logs-btn ${isRefreshing ? "is-refreshing" : ""}`}
                 style={{ padding: "8px", borderRadius: "6px" }}
-                title="Refresh Log Data"
+                title={isRefreshing ? "Refreshing Log Data" : "Refresh Log Data"}
+                disabled={isRefreshing}
+                aria-busy={isRefreshing}
               >
                 🔄
               </button>
@@ -506,9 +556,7 @@ export default function CampaignDetail({
                               </a>
                             )}
                             <span className="inspector-ip-fetched">
-                              Saved {selectedLog.ipLookupFetchedAt
-                                ? new Date(selectedLog.ipLookupFetchedAt).toLocaleString()
-                                : "just now"}
+                              Fetched for this session only
                             </span>
                           </div>
                         </>
