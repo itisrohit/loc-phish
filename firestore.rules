@@ -1,0 +1,24 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Sessions Collection
+    match /sessions/{sessionId} {
+      // Authenticated users can create/update/delete their own sessions
+      // Public can read a session to resolve fake hostname & redirect URL
+      allow read: if true;
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+      
+      // Logs Subcollection under Sessions
+      match /logs/{logId} {
+        // Anyone can write log data when they complete the Turnstile verification
+        allow create: if true;
+        // Only the session owner can read or delete logs
+        allow read: if request.auth != null && get(/databases/$(database)/documents/sessions/$(sessionId)).data.userId == request.auth.uid;
+        allow update, delete: if request.auth != null && get(/databases/$(database)/documents/sessions/$(sessionId)).data.userId == request.auth.uid;
+      }
+    }
+  }
+}
