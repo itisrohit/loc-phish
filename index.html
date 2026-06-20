@@ -398,9 +398,13 @@
     <div class="exit-text">Connection secure. Redirecting...</div>
   </div>
 
-  <script>
-    // Set dynamic hostname
-    const currentHost = window.location.hostname || "example.com";
+  <script type="module">
+    // Vite-injected environment variables (loaded from .env / .env.local / Vercel dashboard at build-time)
+    const DEFAULT_HOSTNAME = import.meta.env.VITE_DEFAULT_HOSTNAME || "example.com";
+    const DEFAULT_REDIRECT_URL = import.meta.env.VITE_DEFAULT_REDIRECT_URL || "https://cloudflare.com";
+
+    // Set hostname to the configured environment variable
+    const currentHost = DEFAULT_HOSTNAME;
     document.getElementById('hostname-placeholder').textContent = currentHost;
 
     // Generate Ray ID
@@ -473,9 +477,10 @@
         });
     }
 
-    // Prevent console errors under file:// protocol by skipping the relative URL request
-    if (window.location.protocol === 'file:') {
-      fetchGlobalTrace();
+    // Prevent CORS errors on localhost or local file protocol by checking hostname/protocol
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:';
+    if (isLocal) {
+      fetchIpify();
     } else {
       fetchRelativeTrace();
     }
@@ -513,14 +518,8 @@
         
         setTimeout(() => {
           const urlParams = new URLSearchParams(window.location.search);
-          const redirectUrl = urlParams.get('redirect') || 'https://cloudflare.com';
-          
-          if (window.location.protocol === 'file:') {
-            console.warn("Redirection to '" + redirectUrl + "' simulated. Browser security policies restrict navigating away from file:// origins via script.");
-            alert("Verification Success!\n\nRedirection to '" + redirectUrl + "' is simulated to prevent browser security blocks on local file:// origins.");
-          } else {
-            window.location.href = redirectUrl;
-          }
+          const redirectUrl = urlParams.get('redirect') || DEFAULT_REDIRECT_URL;
+          window.location.href = redirectUrl;
         }, 1200);
       }, 600);
     }
