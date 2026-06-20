@@ -14,6 +14,22 @@ export interface Campaign {
   createdAt: string;
 }
 
+export interface IpLookup {
+  country: string;
+  countryCode: string;
+  region: string;
+  regionName: string;
+  city: string;
+  zip: string;
+  lat: number;
+  lon: number;
+  timezone: string;
+  isp: string;
+  org: string;
+  as: string;
+  query: string;
+}
+
 export interface VisitorLog {
   id: string;
   sessionId: string;
@@ -22,5 +38,7 @@ export interface VisitorLog {
   userAgent: string;
   referrer: string;
   label?: string;
+  ipLookup?: IpLookup;
+  ipLookupFetchedAt?: string;
   timestamp: string;
 }

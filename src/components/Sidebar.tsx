@@ -19,14 +19,11 @@ export default function Sidebar({
 }: SidebarProps) {
   return (
     <aside className="dashboard-sidebar">
-      <button onClick={onCreateNew} className="btn btn-primary w-full mb-5">
+      <button onClick={onCreateNew} className="btn btn-primary sidebar-create-btn">
         <span>➕ New Campaign</span>
       </button>
 
-      <div
-        className="mb-3 text-[11px] uppercase tracking-widest font-bold px-1"
-        style={{ color: "var(--color-text-muted)" }}
-      >
+      <div className="sidebar-section-label">
         Your Campaigns
       </div>
 

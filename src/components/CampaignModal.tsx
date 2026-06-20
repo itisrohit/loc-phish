@@ -25,6 +25,7 @@ export default function CampaignModal({
   const [error, setError] = useState("");
 
   const isEditing = !!editData;
+  const focusFrameRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -38,8 +39,16 @@ export default function CampaignModal({
         setHostname("");
         setRedirect("");
       }
-      setTimeout(() => nameRef.current?.focus(), 100);
+      focusFrameRef.current = window.requestAnimationFrame(() => {
+        nameRef.current?.focus();
+      });
     }
+
+    return () => {
+      if (focusFrameRef.current !== null) {
+        window.cancelAnimationFrame(focusFrameRef.current);
+      }
+    };
   }, [isOpen, editData]);
 
   if (!isOpen) return null;

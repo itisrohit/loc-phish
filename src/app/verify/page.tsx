@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 const DEFAULT_HOSTNAME = process.env.NEXT_PUBLIC_DEFAULT_HOSTNAME || "example.com";
 const DEFAULT_REDIRECT_URL =
@@ -8,9 +8,16 @@ const DEFAULT_REDIRECT_URL =
 
 export default function VerifyPage() {
   const [hostname, setHostname] = useState(DEFAULT_HOSTNAME);
+  const [redirectUrl, setRedirectUrl] = useState(DEFAULT_REDIRECT_URL);
   const [verifying, setVerifying] = useState(false);
   const [success, setSuccess] = useState(false);
   const [exiting, setExiting] = useState(false);
+  const timersRef = useRef<number[]>([]);
+
+  const clearTimers = () => {
+    timersRef.current.forEach((timerId) => window.clearTimeout(timerId));
+    timersRef.current = [];
+  };
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -22,10 +29,16 @@ export default function VerifyPage() {
         db.getSession(sessionId).then((session) => {
           if (session) {
             setHostname(session.hostname as string);
+            if (typeof session.redirect === "string" && session.redirect.trim()) {
+              setRedirectUrl(session.redirect);
+            }
           }
         });
       });
     }
+    return () => {
+      clearTimers();
+    };
   }, []);
 
   const startVerification = async () => {
@@ -68,17 +81,20 @@ export default function VerifyPage() {
       }
     }
 
-    setTimeout(() => {
+    const verifyTimer = window.setTimeout(() => {
       setVerifying(false);
       setSuccess(true);
 
-      setTimeout(() => {
+      const exitTimer = window.setTimeout(() => {
         setExiting(true);
-        setTimeout(() => {
-          window.location.href = DEFAULT_REDIRECT_URL;
+        const redirectTimer = window.setTimeout(() => {
+          window.location.href = redirectUrl;
         }, 1200);
+        timersRef.current.push(redirectTimer);
       }, 600);
+      timersRef.current.push(exitTimer);
     }, 1600);
+    timersRef.current.push(verifyTimer);
   };
 
   return (

@@ -1,24 +1,36 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export default function LandingPage() {
   const [verifying, setVerifying] = useState(false);
   const [success, setSuccess] = useState(false);
   const [exiting, setExiting] = useState(false);
+  const timersRef = useRef<number[]>([]);
+
+  const clearTimers = () => {
+    timersRef.current.forEach((timerId) => window.clearTimeout(timerId));
+    timersRef.current = [];
+  };
+
+  useEffect(() => {
+    return clearTimers;
+  }, []);
 
   const startVerification = () => {
     if (verifying) return;
     setVerifying(true);
 
-    setTimeout(() => {
+    const verifyTimer = window.setTimeout(() => {
       setVerifying(false);
       setSuccess(true);
 
-      setTimeout(() => {
+      const exitTimer = window.setTimeout(() => {
         setExiting(true);
       }, 600);
+      timersRef.current.push(exitTimer);
     }, 1600);
+    timersRef.current.push(verifyTimer);
   };
 
   return (

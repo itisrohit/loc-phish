@@ -1,29 +1,99 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import type { Campaign, VisitorLog } from "@/types";
+import { useState, useEffect, useCallback, useRef } from "react";
+import type { Campaign, IpLookup, VisitorLog } from "@/types";
 import { db } from "@/lib/firebase";
 
 interface CampaignDetailProps {
   campaign: Campaign;
   onEdit: () => void;
+  onBack?: () => void;
+  showBackButton?: boolean;
 }
 
-export default function CampaignDetail({ campaign, onEdit }: CampaignDetailProps) {
+export default function CampaignDetail({
+  campaign,
+  onEdit,
+  onBack,
+  showBackButton = false,
+}: CampaignDetailProps) {
   const [logs, setLogs] = useState<VisitorLog[]>([]);
   const [showNoLogs, setShowNoLogs] = useState(false);
   const [toastVisible, setToastVisible] = useState(false);
   const [selectedLog, setSelectedLog] = useState<VisitorLog | null>(null);
   const [detailLabel, setDetailLabel] = useState("");
+  const [ipInfoVisible, setIpInfoVisible] = useState(false);
+  const [ipLookupLoading, setIpLookupLoading] = useState(false);
+  const [ipLookupError, setIpLookupError] = useState("");
+  const toastTimeoutRef = useRef<number | null>(null);
 
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   const linkUrl = `${origin}/verify?s=${campaign.id}`;
+  const mapUrl =
+    selectedLog?.ipLookup &&
+    Number.isFinite(selectedLog.ipLookup.lat) &&
+    Number.isFinite(selectedLog.ipLookup.lon)
+      ? `https://www.google.com/maps?q=${selectedLog.ipLookup.lat},${selectedLog.ipLookup.lon}`
+      : null;
+  const ipLookupDetails = selectedLog?.ipLookup
+    ? [
+        { label: "Country", value: `${selectedLog.ipLookup.country} (${selectedLog.ipLookup.countryCode})` },
+        {
+          label: "Region",
+          value: selectedLog.ipLookup.regionName || selectedLog.ipLookup.region || "Unknown",
+        },
+        { label: "City", value: selectedLog.ipLookup.city || "Unknown" },
+        { label: "ZIP", value: selectedLog.ipLookup.zip || "Unknown" },
+        { label: "Timezone", value: selectedLog.ipLookup.timezone || "Unknown" },
+        { label: "Coordinates", value: `${selectedLog.ipLookup.lat}, ${selectedLog.ipLookup.lon}` },
+        { label: "ISP", value: selectedLog.ipLookup.isp || "Unknown" },
+        { label: "Organization", value: selectedLog.ipLookup.org || "Unknown" },
+        { label: "ASN", value: selectedLog.ipLookup.as || "Unknown" },
+      ]
+    : [];
+
+  const openLogDetails = useCallback((log: VisitorLog) => {
+    setSelectedLog(log);
+    setDetailLabel(log.label || "");
+    setIpInfoVisible(false);
+    setIpLookupLoading(false);
+    setIpLookupError("");
+  }, []);
+
+  const patchLogState = useCallback((logId: string, patch: Partial<VisitorLog>) => {
+    setLogs((current) => current.map((log) => (log.id === logId ? { ...log, ...patch } : log)));
+    setSelectedLog((current) => (current?.id === logId ? { ...current, ...patch } : current));
+  }, []);
 
   const loadLogs = useCallback(async () => {
     try {
       const data = await db.getLogs(campaign.id);
-      setLogs(data as VisitorLog[]);
-      setShowNoLogs(data.length === 0);
+      const nextLogs = data as VisitorLog[];
+
+      setLogs((current) => {
+        const isUnchanged =
+          current.length === nextLogs.length &&
+          current.every((log, index) => {
+            const nextLog = nextLogs[index];
+            return (
+              nextLog &&
+              log.id === nextLog.id &&
+              log.label === nextLog.label &&
+              log.timestamp === nextLog.timestamp &&
+              log.ip === nextLog.ip &&
+              log.rayId === nextLog.rayId &&
+              log.userAgent === nextLog.userAgent &&
+              log.referrer === nextLog.referrer
+            );
+          });
+
+        return isUnchanged ? current : nextLogs;
+      });
+      setShowNoLogs(nextLogs.length === 0);
+      setSelectedLog((current) => {
+        if (!current) return current;
+        return nextLogs.find((log) => log.id === current.id) ?? current;
+      });
     } catch (err) {
       console.error("Error loading logs:", err);
     }
@@ -31,14 +101,38 @@ export default function CampaignDetail({ campaign, onEdit }: CampaignDetailProps
 
   useEffect(() => {
     loadLogs();
-    const interval = setInterval(loadLogs, 4000);
-    return () => clearInterval(interval);
+    const refreshIfVisible = () => {
+      if (document.visibilityState === "visible") {
+        void loadLogs();
+      }
+    };
+
+    const interval = window.setInterval(refreshIfVisible, 12000);
+    document.addEventListener("visibilitychange", refreshIfVisible);
+    window.addEventListener("focus", refreshIfVisible);
+
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", refreshIfVisible);
+      window.removeEventListener("focus", refreshIfVisible);
+    };
   }, [loadLogs]);
+
+  useEffect(() => {
+    return () => {
+      if (toastTimeoutRef.current !== null) {
+        window.clearTimeout(toastTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const copyLink = () => {
     navigator.clipboard.writeText(linkUrl).then(() => {
       setToastVisible(true);
-      setTimeout(() => setToastVisible(false), 2000);
+      if (toastTimeoutRef.current !== null) {
+        window.clearTimeout(toastTimeoutRef.current);
+      }
+      toastTimeoutRef.current = window.setTimeout(() => setToastVisible(false), 2000);
     });
   };
 
@@ -54,10 +148,43 @@ export default function CampaignDetail({ campaign, onEdit }: CampaignDetailProps
     const newLabel = detailLabel.trim();
     try {
       await db.updateLog(campaign.id, selectedLog.id, { label: newLabel });
-      setSelectedLog({ ...selectedLog, label: newLabel });
-      await loadLogs();
+      patchLogState(selectedLog.id, { label: newLabel });
     } catch (err) {
       console.error("Error saving label:", err);
+    }
+  };
+
+  const toggleIpInfo = async () => {
+    if (!selectedLog) return;
+
+    const nextVisible = !ipInfoVisible;
+    setIpInfoVisible(nextVisible);
+    if (!nextVisible || selectedLog.ipLookup || ipLookupLoading) return;
+
+    setIpLookupError("");
+    setIpLookupLoading(true);
+
+    try {
+      const response = await fetch(`/api/ip-lookup?ip=${encodeURIComponent(selectedLog.ip)}`);
+      const payload = (await response.json()) as IpLookup | { error?: string };
+
+      if (!response.ok || "error" in payload) {
+        throw new Error("error" in payload ? payload.error || "Lookup failed" : "Lookup failed");
+      }
+
+      const fetchedAt = new Date().toISOString();
+      const patch = {
+        ipLookup: payload as IpLookup,
+        ipLookupFetchedAt: fetchedAt,
+      };
+
+      patchLogState(selectedLog.id, patch);
+      await db.updateLog(campaign.id, selectedLog.id, patch);
+    } catch (err) {
+      console.error("IP lookup failed:", err);
+      setIpLookupError(err instanceof Error ? err.message : "Failed to load IP details");
+    } finally {
+      setIpLookupLoading(false);
     }
   };
 
@@ -78,6 +205,11 @@ export default function CampaignDetail({ campaign, onEdit }: CampaignDetailProps
             {/* Session Header */}
             <div className="logs-header-section">
               <div className="session-detail-header">
+                {showBackButton && onBack && (
+                  <button className="detail-back-btn" onClick={onBack}>
+                    ← Back to Sessions
+                  </button>
+                )}
                 <div className="session-title-row">
                   <h2 className="session-detail-title">{campaign.name}</h2>
                   <button
@@ -188,17 +320,14 @@ export default function CampaignDetail({ campaign, onEdit }: CampaignDetailProps
                     {logs.map((log) => (
                       <tr
                         key={log.id}
-                        onClick={() => {
-                          setSelectedLog(log);
-                          setDetailLabel(log.label || "");
-                        }}
+                        onClick={() => openLogDetails(log)}
                       >
-                        <td>
+                        <td data-label="Timestamp">
                           <span className="timestamp">
                             {new Date(log.timestamp).toLocaleString()}
                           </span>
                         </td>
-                        <td>
+                        <td data-label="Visitor">
                           <div className="visitor-label-container">
                             {log.label ? (
                               <>
@@ -222,7 +351,7 @@ export default function CampaignDetail({ campaign, onEdit }: CampaignDetailProps
                             )}
                           </div>
                         </td>
-                        <td>
+                        <td data-label="Ray ID">
                           <span
                             style={{
                               fontFamily: "monospace",
@@ -232,10 +361,10 @@ export default function CampaignDetail({ campaign, onEdit }: CampaignDetailProps
                             {log.rayId || "N/A"}
                           </span>
                         </td>
-                        <td>
+                        <td data-label="Status">
                           <span className="status-badge verified">Verified</span>
                         </td>
-                        <td style={{ maxWidth: "320px" }}>
+                        <td data-label="Referrer / UA" style={{ maxWidth: "320px" }}>
                           <div
                             style={{
                               fontWeight: 500,
@@ -261,17 +390,29 @@ export default function CampaignDetail({ campaign, onEdit }: CampaignDetailProps
                             UA: {log.userAgent || "Unknown"}
                           </div>
                         </td>
-                        <td style={{ textAlign: "center" }}>
-                          <button
-                            className="delete-log-btn"
-                            title="Delete record"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              deleteLog(log);
-                            }}
-                          >
-                            🗑️
-                          </button>
+                        <td data-label="Action" style={{ textAlign: "center" }}>
+                          <div className="log-row-actions">
+                            <button
+                              className="inspect-log-btn"
+                              title="Open record details"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openLogDetails(log);
+                              }}
+                            >
+                              Inspect
+                            </button>
+                            <button
+                              className="delete-log-btn"
+                              title="Delete record"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteLog(log);
+                              }}
+                            >
+                              🗑️
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -330,7 +471,53 @@ export default function CampaignDetail({ campaign, onEdit }: CampaignDetailProps
               </div>
               <div className="inspector-row">
                 <span className="inspector-label">IP Address</span>
-                <span className="ip-address inspector-ip">{selectedLog.ip || "Unknown"}</span>
+                <div className="inspector-ip-section">
+                  <div className="inspector-ip-summary">
+                    <span className="ip-address inspector-ip">{selectedLog.ip || "Unknown"}</span>
+                    <button className="btn btn-secondary inspector-toggle-btn" onClick={toggleIpInfo}>
+                      {ipInfoVisible ? "Hide Details" : "Show Details"}
+                    </button>
+                  </div>
+                  {ipInfoVisible && (
+                    <div className="inspector-ip-panel">
+                      {ipLookupLoading ? (
+                        <span className="inspector-ip-meta">Loading IP details...</span>
+                      ) : ipLookupError ? (
+                        <span className="inspector-ip-error">{ipLookupError}</span>
+                      ) : ipLookupDetails.length > 0 ? (
+                        <>
+                          <dl className="inspector-ip-list">
+                            {ipLookupDetails.map((detail) => (
+                              <div key={detail.label} className="inspector-ip-item">
+                                <dt className="inspector-ip-meta-label">{detail.label}</dt>
+                                <dd className="inspector-ip-meta">{detail.value}</dd>
+                              </div>
+                            ))}
+                          </dl>
+                          <div className="inspector-ip-footer">
+                            {mapUrl && (
+                              <a
+                                className="inspector-map-link"
+                                href={mapUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                View on Map
+                              </a>
+                            )}
+                            <span className="inspector-ip-fetched">
+                              Saved {selectedLog.ipLookupFetchedAt
+                                ? new Date(selectedLog.ipLookupFetchedAt).toLocaleString()
+                                : "just now"}
+                            </span>
+                          </div>
+                        </>
+                      ) : (
+                        <span className="inspector-ip-meta">No IP details available.</span>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
               <div className="inspector-row">
                 <span className="inspector-label">Ray ID</span>
@@ -354,9 +541,6 @@ export default function CampaignDetail({ campaign, onEdit }: CampaignDetailProps
             <div className="modal-footer">
               <button className="btn btn-danger" onClick={deleteSelectedLog}>
                 🗑️ Delete Record
-              </button>
-              <button className="btn btn-secondary" onClick={() => setSelectedLog(null)}>
-                Close Inspector
               </button>
             </div>
           </div>

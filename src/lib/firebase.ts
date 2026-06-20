@@ -19,6 +19,7 @@ import {
   deleteDoc,
   updateDoc,
 } from "firebase/firestore";
+import type { IpLookup, VisitorLog } from "@/types";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -271,6 +272,8 @@ export const db = {
         userAgent: string;
         referrer: string;
         label?: string;
+        ipLookup?: IpLookup;
+        ipLookupFetchedAt?: string;
         timestamp: string;
       }> = [];
       querySnapshot.forEach((d) => {
@@ -283,6 +286,10 @@ export const db = {
           userAgent: String(data.userAgent ?? ""),
           referrer: String(data.referrer ?? ""),
           label: data.label ? String(data.label) : undefined,
+          ipLookup: data.ipLookup ? (data.ipLookup as IpLookup) : undefined,
+          ipLookupFetchedAt: data.ipLookupFetchedAt
+            ? String(data.ipLookupFetchedAt)
+            : undefined,
           timestamp: String(data.timestamp ?? ""),
         });
       });
@@ -323,7 +330,11 @@ export const db = {
     }
   },
 
-  updateLog: async (sessionId: string, logId: string, updateData: { label: string }) => {
+  updateLog: async (
+    sessionId: string,
+    logId: string,
+    updateData: Partial<Pick<VisitorLog, "label" | "ipLookup" | "ipLookupFetchedAt">>
+  ) => {
     if (isFirebaseConfigured && realDb) {
       await updateDoc(doc(realDb, `sessions/${sessionId}/logs`, logId), updateData);
     } else {

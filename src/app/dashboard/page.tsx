@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { auth, db } from "@/lib/firebase";
 import type { Campaign } from "@/types";
@@ -18,6 +18,26 @@ export default function DashboardPage() {
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editCampaign, setEditCampaign] = useState<Campaign | null>(null);
+  const [isMobileView, setIsMobileView] = useState(false);
+  const selectedCampaignIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    selectedCampaignIdRef.current = selectedCampaign?.id ?? null;
+  }, [selectedCampaign]);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 900px)");
+    const updateViewport = (event?: MediaQueryListEvent) => {
+      setIsMobileView(event ? event.matches : mediaQuery.matches);
+    };
+
+    updateViewport();
+    mediaQuery.addEventListener("change", updateViewport);
+
+    return () => {
+      mediaQuery.removeEventListener("change", updateViewport);
+    };
+  }, []);
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((firebaseUser) => {
@@ -55,20 +75,39 @@ export default function DashboardPage() {
           createdAt: String(s.createdAt ?? ""),
         })
       );
-      setCampaigns(mapped);
+      setCampaigns((current) => {
+        const isUnchanged =
+          current.length === mapped.length &&
+          current.every((campaign, index) => {
+            const nextCampaign = mapped[index];
+            return (
+              nextCampaign &&
+              campaign.id === nextCampaign.id &&
+              campaign.name === nextCampaign.name &&
+              campaign.hostname === nextCampaign.hostname &&
+              campaign.redirect === nextCampaign.redirect &&
+              campaign.createdAt === nextCampaign.createdAt
+            );
+          });
 
-      if (mapped.length === 0) {
-        setSelectedCampaign(null);
-      } else if (!selectedCampaign || !mapped.find((c: Campaign) => c.id === selectedCampaign.id)) {
-        setSelectedCampaign(mapped[0]);
-      } else {
-        const updated = mapped.find((c: Campaign) => c.id === selectedCampaign.id);
-        if (updated) setSelectedCampaign(updated);
-      }
+        return isUnchanged ? current : mapped;
+      });
+
+      setSelectedCampaign((current) => {
+        if (mapped.length === 0) return null;
+
+        const selectedId = current?.id ?? selectedCampaignIdRef.current;
+        if (!selectedId) {
+          return isMobileView ? null : mapped[0];
+        }
+
+        const updated = mapped.find((campaign) => campaign.id === selectedId);
+        return updated ?? (isMobileView ? null : mapped[0]);
+      });
     } catch (err) {
       console.error("Error loading campaigns:", err);
     }
-  }, [user, selectedCampaign]);
+  }, [isMobileView, user]);
 
   useEffect(() => {
     if (user) loadCampaigns();
@@ -135,17 +174,24 @@ export default function DashboardPage() {
   if (!user) return null;
 
   const hasCampaigns = campaigns.length > 0;
+  const showMobileList = isMobileView && (!hasCampaigns || !selectedCampaign);
+  const showDesktopLayout = hasCampaigns && !isMobileView;
+  const showMobileDetail = isMobileView && !!selectedCampaign;
+
+  const handleSelectCampaign = (campaign: Campaign) => {
+    setSelectedCampaign(campaign);
+  };
 
   return (
     <div>
       <Header isMock={auth.isMock} userEmail={user.email || ""} onLogout={handleLogout} />
 
-      {hasCampaigns ? (
+      {showDesktopLayout ? (
         <main className="dashboard-layout">
           <Sidebar
             campaigns={campaigns}
             selectedId={selectedCampaign?.id || null}
-            onSelect={setSelectedCampaign}
+            onSelect={handleSelectCampaign}
             onCreateNew={() => setShowCreateModal(true)}
             onDelete={handleDeleteCampaign}
           />
@@ -155,6 +201,25 @@ export default function DashboardPage() {
               onEdit={() => setEditCampaign(selectedCampaign)}
             />
           )}
+        </main>
+      ) : showMobileList ? (
+        <main className="dashboard-layout dashboard-layout-mobile">
+          <Sidebar
+            campaigns={campaigns}
+            selectedId={selectedCampaign?.id || null}
+            onSelect={handleSelectCampaign}
+            onCreateNew={() => setShowCreateModal(true)}
+            onDelete={handleDeleteCampaign}
+          />
+        </main>
+      ) : showMobileDetail && selectedCampaign ? (
+        <main className="dashboard-layout dashboard-layout-mobile">
+          <CampaignDetail
+            campaign={selectedCampaign}
+            onEdit={() => setEditCampaign(selectedCampaign)}
+            onBack={() => setSelectedCampaign(null)}
+            showBackButton
+          />
         </main>
       ) : (
         <div className="onboarding-container">
