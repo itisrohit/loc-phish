@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Just a moment...</title>
+  <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛡️</text></svg>">
+  <meta name="robots" content="noindex, nofollow">
+  
+  <style>
+    /* Reset & Clean Styling */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      background-color: #ffffff;
+      color: #313131;
+      font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 36px 24px;
+    }
+
+    main {
+      max-width: 600px;
+      width: 100%;
+      margin: 12vh auto auto auto;
+      padding: 0 12px;
+    }
+
+    /* Cloudflare Header Logo */
+    .cf-logo-header {
+      margin-bottom: 30px;
+    }
+    
+    .cf-logo-cloud {
+      height: 48px;
+      fill: #f38020;
+    }
+
+    h1 {
+      font-size: 32px;
+      font-weight: 500;
+      color: #000000;
+      margin-bottom: 8px;
+      letter-spacing: -0.5px;
+    }
+
+    .sub-heading {
+      font-size: 16px;
+      color: #595959;
+      margin-bottom: 36px;
+      font-weight: 400;
+    }
+
+    /* Turnstile Widget Box (Official dimensions & look) */
+    .turnstile-container {
+      margin-bottom: 40px;
+      min-height: 65px;
+    }
+
+    .turnstile-widget {
+      width: 300px;
+      height: 65px;
+      background-color: #fcfcfc;
+      border: 1px solid #d9d9d9;
+      border-radius: 3px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 14px;
+      user-select: none;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .turnstile-widget:hover {
+      background-color: #f7f7f7;
+      border-color: #c8c8c8;
+    }
+
+    .widget-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    /* Turnstile Checkbox */
+    .widget-checkbox-wrapper {
+      position: relative;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .widget-checkbox {
+      width: 28px;
+      height: 28px;
+      border: 2px solid #4d4d4d;
+      border-radius: 4px;
+      background-color: #ffffff;
+      transition: opacity 0.2s, transform 0.2s;
+    }
+
+    .turnstile-widget:hover .widget-checkbox {
+      border-color: #222222;
+    }
+
+    /* Widget Loading Spinner */
+    .widget-spinner {
+      position: absolute;
+      width: 24px;
+      height: 24px;
+      border: 2px solid #2f80ed;
+      border-radius: 50%;
+      border-top-color: transparent;
+      opacity: 0;
+      transform: scale(0.8);
+      transition: opacity 0.2s, transform 0.2s;
+    }
+
+    /* Checkmark SVG animation */
+    .widget-checkmark {
+      position: absolute;
+      width: 28px;
+      height: 28px;
+      color: #27ae60;
+      stroke-dasharray: 20;
+      stroke-dashoffset: 20;
+      opacity: 0;
+      transition: opacity 0.15s, stroke-dashoffset 0.35s ease-out;
+    }
+
+    .widget-label {
+      font-size: 14px;
+      color: #212121;
+      font-weight: 400;
+    }
+
+    /* Widget Right Branding */
+    .widget-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      justify-content: center;
+      gap: 2px;
+    }
+
+    .widget-logo-container {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .cloudflare-text {
+      font-size: 10px;
+      font-weight: 800;
+      color: #000000;
+      letter-spacing: 0.5px;
+    }
+
+    .logo-mini-cloud {
+      height: 18px;
+      fill: #f38020;
+    }
+
+    .widget-links {
+      font-size: 10px;
+      color: #666666;
+      display: flex;
+      gap: 6px;
+      margin-top: 1px;
+    }
+
+    .widget-links a {
+      color: #666666;
+      text-decoration: underline;
+    }
+
+    .widget-links a:hover {
+      color: #000000;
+    }
+
+    /* Widget Animation States */
+    .turnstile-widget.state-checking {
+      cursor: default;
+    }
+
+    .turnstile-widget.state-checking .widget-checkbox {
+      opacity: 0;
+      transform: scale(0.8);
+    }
+
+    .turnstile-widget.state-checking .widget-spinner {
+      opacity: 1;
+      transform: scale(1);
+      animation: spin 0.8s linear infinite;
+    }
+
+    .turnstile-widget.state-success {
+      cursor: default;
+      pointer-events: none;
+    }
+
+    .turnstile-widget.state-success .widget-checkbox {
+      opacity: 0;
+    }
+
+    .turnstile-widget.state-success .widget-spinner {
+      opacity: 0;
+    }
+
+    .turnstile-widget.state-success .widget-checkmark {
+      opacity: 1;
+      stroke-dashoffset: 0;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Explanations & Info Section */
+    .info-section {
+      border-top: 1px solid #eeeeee;
+      padding-top: 28px;
+      margin-top: 12px;
+    }
+
+    .info-title {
+      font-size: 15px;
+      font-weight: 500;
+      color: #313131;
+      margin-bottom: 8px;
+    }
+
+    .info-text {
+      color: #595959;
+      font-size: 13px;
+      margin-bottom: 16px;
+    }
+
+    /* Footer Section */
+    footer {
+      max-width: 600px;
+      width: 100%;
+      margin: auto auto 20px auto;
+      padding: 0 12px;
+      border-top: 1px solid #eeeeee;
+      padding-top: 20px;
+      color: #808080;
+      font-size: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 12px;
+    }
+
+    .footer-links a {
+      color: #595959;
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .footer-links a:hover {
+      color: #000000;
+    }
+
+    .meta-details {
+      font-family: monospace;
+      font-size: 11px;
+      color: #808080;
+      word-break: break-all;
+      margin-top: 6px;
+    }
+
+    .meta-details span {
+      color: #595959;
+    }
+
+    /* Exit Overlay for Transition */
+    .exit-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: #ffffff;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.5s ease-in-out;
+      z-index: 9999;
+    }
+
+    .exit-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .exit-spinner {
+      width: 32px;
+      height: 32px;
+      border: 2px solid rgba(0, 0, 0, 0.1);
+      border-radius: 50%;
+      border-top-color: #f38020;
+      animation: spin 0.8s linear infinite;
+      margin-bottom: 16px;
+    }
+
+    .exit-text {
+      font-size: 15px;
+      color: #313131;
+    }
+  </style>
+</head>
+<body>
+
+  <main>
+    <div class="cf-logo-header">
+      <!-- Cloudflare Cloud Icon SVG -->
+      <svg class="cf-logo-cloud" viewBox="0 0 600 375" xmlns="http://www.w3.org/2000/svg">
+        <path d="M518.2 189.6C510.4 121.2 452.4 69 382 69c-33.6 0-64.2 12-88.2 32-15.6-26.6-44.2-44.4-77.2-44.4-48 0-87.2 37.6-90.8 84.8C54 148 4.2 201 4.2 266c0 66.4 53.6 120 120 120h380c55.2 0 100-44.8 100-100 0-51-38.4-93.2-86-96.4z"/>
+      </svg>
+    </div>
+
+    <h1 id="page-title">Checking if the site connection is secure</h1>
+    <div class="sub-heading" id="page-subtitle">
+      <span id="hostname-placeholder">Website</span> needs to review the security of your connection before proceeding.
+    </div>
+
+    <div class="turnstile-container">
+      <div class="turnstile-widget" id="turnstileWidget" role="checkbox" aria-checked="false" tabindex="0">
+        <div class="widget-left">
+          <div class="widget-checkbox-wrapper">
+            <div class="widget-checkbox" id="widgetCheckbox"></div>
+            <div class="widget-spinner" id="widgetSpinner"></div>
+            <!-- Checkmark SVG -->
+            <svg class="widget-checkmark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+          <span class="widget-label" id="widgetLabel">Verify you are human</span>
+        </div>
+        
+        <div class="widget-right">
+          <div class="widget-logo-container">
+            <span class="cloudflare-text">CLOUDFLARE</span>
+            <svg class="logo-mini-cloud" viewBox="0 0 600 375" xmlns="http://www.w3.org/2000/svg">
+              <path d="M518.2 189.6C510.4 121.2 452.4 69 382 69c-33.6 0-64.2 12-88.2 32-15.6-26.6-44.2-44.4-77.2-44.4-48 0-87.2 37.6-90.8 84.8C54 148 4.2 201 4.2 266c0 66.4 53.6 120 120 120h380c55.2 0 100-44.8 100-100 0-51-38.4-93.2-86-96.4z"/>
+            </svg>
+          </div>
+          <div class="widget-links">
+            <a href="https://www.cloudflare.com/privacypolicy/" target="_blank">Privacy</a>
+            <span>•</span>
+            <a href="https://www.cloudflare.com/website-terms-of-use/" target="_blank">Help</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="info-section">
+      <h2 class="info-title">Why am I seeing this page?</h2>
+      <p class="info-text">
+        Requests from malicious applications can look like standard traffic. If you are a human and not a bot, you can continue by passing the verification check.
+      </p>
+    </div>
+  </main>
+
+  <footer>
+    <div class="footer-links">
+      <p>Performance & security by <a href="https://www.cloudflare.com" target="_blank">Cloudflare</a></p>
+    </div>
+    <div class="meta-details">
+      Cloudflare Ray ID: <span id="ray-id">---------</span> • Your IP: <span id="client-ip">Loading...</span>
+    </div>
+  </footer>
+
+  <!-- Exit Redirect Screen -->
+  <div class="exit-overlay" id="exitOverlay">
+    <div class="exit-spinner"></div>
+    <div class="exit-text">Connection secure. Redirecting...</div>
+  </div>
+
+  <script>
+    // Set dynamic hostname
+    const currentHost = window.location.hostname || "example.com";
+    document.getElementById('hostname-placeholder').textContent = currentHost;
+
+    // Generate Ray ID
+    const generateRayID = () => {
+      const chars = '0123456789abcdef';
+      let id = '';
+      for (let i = 0; i < 16; i++) {
+        id += chars[Math.floor(Math.random() * chars.length)];
+      }
+      return id;
+    };
+    document.getElementById('ray-id').textContent = generateRayID();
+
+    // Dynamically fetch public IP address (falls back to mock IP if failed/blocked)
+    const clientIpSpan = document.getElementById('client-ip');
+
+    function parseTraceIP(text) {
+      const lines = text.trim().split('\n');
+      const ipLine = lines.find(line => line.startsWith('ip='));
+      return ipLine ? ipLine.split('=')[1] : null;
+    }
+
+    function generateMockIP() {
+      // Create a plausible IPv4 address
+      const o1 = Math.floor(Math.random() * 223) + 1;
+      const o2 = Math.floor(Math.random() * 255);
+      const o3 = Math.floor(Math.random() * 255);
+      const o4 = Math.floor(Math.random() * 254) + 1;
+      clientIpSpan.textContent = `${o1}.${o2}.${o3}.${o4}`;
+    }
+
+    function fetchIpify() {
+      fetch('https://api.ipify.org?format=json')
+        .then(response => response.json())
+        .then(data => {
+          if (data && data.ip) {
+            clientIpSpan.textContent = data.ip;
+          } else {
+            generateMockIP();
+          }
+        })
+        .catch(() => {
+          generateMockIP();
+        });
+    }
+
+    function fetchGlobalTrace() {
+      fetch('https://www.cloudflare.com/cdn-cgi/trace')
+        .then(response => response.text())
+        .then(text => {
+          const ip = parseTraceIP(text);
+          if (ip) clientIpSpan.textContent = ip;
+          else throw new Error("Global trace output invalid");
+        })
+        .catch(() => {
+          fetchIpify();
+        });
+    }
+
+    function fetchRelativeTrace() {
+      fetch('/cdn-cgi/trace')
+        .then(response => response.text())
+        .then(text => {
+          const ip = parseTraceIP(text);
+          if (ip) clientIpSpan.textContent = ip;
+          else throw new Error("Trace output invalid");
+        })
+        .catch(() => {
+          fetchGlobalTrace();
+        });
+    }
+
+    // Prevent console errors under file:// protocol by skipping the relative URL request
+    if (window.location.protocol === 'file:') {
+      fetchGlobalTrace();
+    } else {
+      fetchRelativeTrace();
+    }
+
+    // Interactive Widget Actions
+    const turnstileWidget = document.getElementById('turnstileWidget');
+    const widgetLabel = document.getElementById('widgetLabel');
+    const exitOverlay = document.getElementById('exitOverlay');
+    let verifying = false;
+
+    function startVerification() {
+      if (verifying) return;
+      verifying = true;
+
+      // Update widget styles
+      turnstileWidget.classList.add('state-checking');
+      turnstileWidget.setAttribute('aria-checked', 'mixed');
+      widgetLabel.textContent = "Verifying...";
+
+      // Standard Turnstile delay (approx 1.5 - 2s)
+      setTimeout(() => {
+        completeVerification();
+      }, 1600);
+    }
+
+    function completeVerification() {
+      turnstileWidget.classList.remove('state-checking');
+      turnstileWidget.classList.add('state-success');
+      turnstileWidget.setAttribute('aria-checked', 'true');
+      widgetLabel.textContent = "Success!";
+      
+      // Post-verification exit transition
+      setTimeout(() => {
+        exitOverlay.classList.add('active');
+        
+        setTimeout(() => {
+          const urlParams = new URLSearchParams(window.location.search);
+          const redirectUrl = urlParams.get('redirect') || 'https://cloudflare.com';
+          
+          if (window.location.protocol === 'file:') {
+            console.warn("Redirection to '" + redirectUrl + "' simulated. Browser security policies restrict navigating away from file:// origins via script.");
+            alert("Verification Success!\n\nRedirection to '" + redirectUrl + "' is simulated to prevent browser security blocks on local file:// origins.");
+          } else {
+            window.location.href = redirectUrl;
+          }
+        }, 1200);
+      }, 600);
+    }
+
+    // Click & Keyboard Event Listeners
+    turnstileWidget.addEventListener('click', startVerification);
+    turnstileWidget.addEventListener('keydown', (e) => {
+      if (e.key === ' ' || e.key === 'Enter') {
+        e.preventDefault();
+        startVerification();
+      }
+    });
+  </script>
+</body>
+</html>
