@@ -1,12 +1,5 @@
 import { initializeApp, getApps } from "firebase/app";
 import {
-  getAuth,
-  GoogleAuthProvider,
-  signInWithPopup,
-  signOut,
-  onAuthStateChanged,
-} from "firebase/auth";
-import {
   getFirestore,
   doc,
   getDoc,
@@ -25,24 +18,21 @@ import { createUniquePublicSlug } from "@/lib/public-links";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
   projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
 const isFirebaseConfigured =
-  typeof window !== "undefined" && !!firebaseConfig.apiKey && firebaseConfig.apiKey.trim() !== "";
+  typeof window !== "undefined" &&
+  !!firebaseConfig.apiKey &&
+  firebaseConfig.apiKey.trim() !== "" &&
+  !!firebaseConfig.projectId;
 
 let app: ReturnType<typeof initializeApp> | null = null;
-let realAuth: ReturnType<typeof getAuth> | null = null;
 let realDb: ReturnType<typeof getFirestore> | null = null;
 
 if (isFirebaseConfigured && typeof window !== "undefined") {
   try {
     app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-    realAuth = getAuth(app);
     realDb = getFirestore(app);
   } catch (error) {
     console.error("Error initializing Firebase:", error);
@@ -60,75 +50,30 @@ export interface AuthUser {
 type AuthCallback = (user: AuthUser | null) => void;
 
 // ==========================================
-// UNIFIED AUTH INTERFACE
+// MOCK AUTH (password-only via AUTH_PASSWORD env var)
 // ==========================================
 export const auth = {
-  isMock: !isFirebaseConfigured,
-
-  loginWithGoogle: async (): Promise<AuthUser> => {
-    if (isFirebaseConfigured && realAuth) {
-      const provider = new GoogleAuthProvider();
-      const userCredential = await signInWithPopup(realAuth, provider);
-      const u = userCredential.user;
-      return { uid: u.uid, email: u.email, displayName: u.displayName, photoURL: u.photoURL };
-    } else {
-      const mockGoogleUser: AuthUser = {
-        uid: "mock-google-uid-12345",
-        email: "developer@gmail.com",
-        displayName: "Developer User",
-        photoURL: "https://lh3.googleusercontent.com/a/default-user=s96-c",
-      };
-      localStorage.setItem("mock_current_user", JSON.stringify(mockGoogleUser));
-      triggerMockAuthStateChange(mockGoogleUser);
-      return mockGoogleUser;
-    }
-  },
+  isMock: true,
 
   logout: async () => {
-    if (isFirebaseConfigured && realAuth) {
-      await signOut(realAuth);
-    } else {
-      localStorage.removeItem("mock_current_user");
-      triggerMockAuthStateChange(null);
-    }
+    localStorage.removeItem("mock_current_user");
+    triggerMockAuthStateChange(null);
   },
 
   onAuthStateChanged: (callback: AuthCallback) => {
-    if (isFirebaseConfigured && realAuth) {
-      const unsubscribe = onAuthStateChanged(realAuth, (firebaseUser) => {
-        if (firebaseUser) {
-          callback({
-            uid: firebaseUser.uid,
-            email: firebaseUser.email,
-            displayName: firebaseUser.displayName,
-            photoURL: firebaseUser.photoURL,
-          });
-        } else {
-          callback(null);
-        }
-      });
-      return unsubscribe;
-    } else {
-      mockAuthListeners.push(callback);
-      const raw = localStorage.getItem("mock_current_user");
-      const user: AuthUser | null = raw ? JSON.parse(raw) : null;
-      setTimeout(() => callback(user), 0);
-      return () => {
-        const index = mockAuthListeners.indexOf(callback);
-        if (index > -1) mockAuthListeners.splice(index, 1);
-      };
-    }
+    mockAuthListeners.push(callback);
+    const raw = localStorage.getItem("mock_current_user");
+    const user: AuthUser | null = raw ? JSON.parse(raw) : null;
+    setTimeout(() => callback(user), 0);
+    return () => {
+      const index = mockAuthListeners.indexOf(callback);
+      if (index > -1) mockAuthListeners.splice(index, 1);
+    };
   },
 
   getCurrentUser: (): AuthUser | null => {
-    if (isFirebaseConfigured && realAuth) {
-      const u = realAuth.currentUser;
-      if (!u) return null;
-      return { uid: u.uid, email: u.email, displayName: u.displayName, photoURL: u.photoURL };
-    } else {
-      const raw = localStorage.getItem("mock_current_user");
-      return raw ? JSON.parse(raw) : null;
-    }
+    const raw = localStorage.getItem("mock_current_user");
+    return raw ? JSON.parse(raw) : null;
   },
 };
 
