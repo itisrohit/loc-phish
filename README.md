@@ -12,7 +12,7 @@ npm install
 cp .env.example .env.local
 ```
 
-Edit `.env.local` and fill in your Firebase credentials for production mode. Without credentials, the app runs in **Mock Mode** using `localStorage`.
+Edit `.env.local` and set `AUTH_PASSWORD` to your desired login password.
 
 ### 3. Run Development Server
 
@@ -24,16 +24,12 @@ npm run dev
 - Login: `http://localhost:3000/login`
 - Turnstile page: `http://localhost:3000/verify?s=<sessionId>`
 
-> In mock mode, click "Sign in with Google" to auto-login as `developer@gmail.com`.
-
 ### 4. Build & Start Production
 
 ```bash
 npm run build    # Build for production
 npm start        # Start production server
 ```
-
-> Production mode uses real Firebase credentials from `.env.local`.
 
 ---
 
@@ -55,15 +51,9 @@ npm start        # Start production server
 
 ---
 
-## Database & Auth Modes
+## Auth
 
-The app automatically switches between modes:
-
-| Mode | Trigger | Auth | Database |
-|------|---------|------|----------|
-| **Mock** | No Firebase env vars / `npm run dev` | Mock Google sign-in | `localStorage` |
-| **Production** | Firebase env vars set | Real Google OAuth | Cloud Firestore |
-
+Login uses a password set via the `AUTH_PASSWORD` environment variable in `.env.local`. On successful login, the session is stored in `localStorage` (mock mode) or Firebase Auth (if configured).
 
 ---
 

@@ -98,29 +98,73 @@
   font-weight: 400;
 }
 
-.googleBtn {
+.form {
   width: 100%;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.75rem;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.passwordInput {
+  width: 100%;
+  padding: 12px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.03);
+  color: #fff;
+  font-size: 0.85rem;
+  font-family: var(--font-mono);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  outline: none;
+  transition: border-color 0.2s ease;
+  letter-spacing: 0.15em;
+}
+
+.passwordInput::placeholder {
+  color: #52525b;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  font-family: var(--font-sans);
+}
+
+.passwordInput:focus {
+  border-color: var(--color-rose);
+}
+
+.submitBtn {
+  width: 100%;
   padding: 12px;
   border-radius: 4px;
   background: transparent;
   color: #fff;
-  font-weight: 600;
-  font-size: 0.85rem;
+  font-weight: 700;
+  font-size: 0.8rem;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  letter-spacing: 0.15em;
+  border: 1px solid rgba(255, 255, 255, 0.15);
   cursor: pointer;
   transition: all 0.2s ease;
+  font-family: var(--font-mono);
 }
 
-.googleBtn:hover {
+.submitBtn:hover:not(:disabled) {
   background: #fff;
   color: #000;
   border-color: #fff;
+}
+
+.submitBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.loading {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: #52525b;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  animation: pulseOpacity 2s ease-in-out infinite;
 }
 
 .error {

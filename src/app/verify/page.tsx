@@ -4,14 +4,10 @@ import { useEffect, useState } from "react";
 import VerifyClient from "@/components/VerifyClient";
 import type { Campaign } from "@/types";
 
-const DEFAULT_HOSTNAME = process.env.NEXT_PUBLIC_DEFAULT_HOSTNAME || "example.com";
-const DEFAULT_REDIRECT_URL =
-  process.env.NEXT_PUBLIC_DEFAULT_REDIRECT_URL || "https://cloudflare.com";
-
 export default function VerifyPage() {
   const [sessionId, setSessionId] = useState("");
-  const [hostname, setHostname] = useState(DEFAULT_HOSTNAME);
-  const [redirectUrl, setRedirectUrl] = useState(DEFAULT_REDIRECT_URL);
+  const [hostname, setHostname] = useState("");
+  const [redirectUrl, setRedirectUrl] = useState("");
   const [ready, setReady] = useState(false);
 
   useEffect(() => {

@@ -133,7 +133,7 @@ export const auth = {
 };
 
 const mockAuthListeners: AuthCallback[] = [];
-function triggerMockAuthStateChange(user: AuthUser | null) {
+export function triggerMockAuthStateChange(user: AuthUser | null) {
   mockAuthListeners.forEach((cb) => cb(user));
 }
 
