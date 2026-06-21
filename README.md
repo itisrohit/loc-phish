@@ -1,5 +1,5 @@
 <p align="center">
-  <strong style="font-size: 2em;">loc-phish</strong>
+  <strong style="font-size: 2.3em;">loc-phish</strong>
 </p>
 <p align="center">
   Private-use location phishing utility.<br>
