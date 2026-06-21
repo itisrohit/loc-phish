@@ -289,9 +289,6 @@ export const db = {
       rayId: string;
       userAgent: string;
       referrer: string;
-      lat?: number;
-      lon?: number;
-      geoAccuracy?: number;
     }
   ) => {
     const data = {
@@ -328,9 +325,6 @@ export const db = {
           referrer: String(data.referrer ?? ""),
           label: data.label ? String(data.label) : undefined,
           timestamp: String(data.timestamp ?? ""),
-          lat: data.lat != null ? Number(data.lat) : undefined,
-          lon: data.lon != null ? Number(data.lon) : undefined,
-          geoAccuracy: data.geoAccuracy != null ? Number(data.geoAccuracy) : undefined,
         });
       });
       return result;

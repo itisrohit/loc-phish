@@ -582,27 +582,6 @@ export default function CampaignDetail({
                   )}
                 </div>
               </div>
-              {selectedLog.lat != null && selectedLog.lon != null && (
-                <div className="inspector-row">
-                  <span className="inspector-label">Geolocation</span>
-                  <div className="inspector-geo-section">
-                    <div className="inspector-geo-coords">
-                      <span className="geo-value">{selectedLog.lat.toFixed(6)}, {selectedLog.lon.toFixed(6)}</span>
-                      {selectedLog.geoAccuracy != null && (
-                        <span className="geo-accuracy">±{selectedLog.geoAccuracy < 1 ? "<1" : Math.round(selectedLog.geoAccuracy)}m</span>
-                      )}
-                    </div>
-                    <a
-                      className="inspector-map-link"
-                      href={`https://www.google.com/maps?q=${selectedLog.lat},${selectedLog.lon}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      View on Map
-                    </a>
-                  </div>
-                </div>
-              )}
               <div className="inspector-row">
                 <span className="inspector-label">Ray ID</span>
                 <span className="inspector-ray">{selectedLog.rayId || "N/A"}</span>

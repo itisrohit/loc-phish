@@ -44,7 +44,4 @@ export interface VisitorLog {
   referrer: string;
   label?: string;
   timestamp: string;
-  lat?: number;
-  lon?: number;
-  geoAccuracy?: number;
 }

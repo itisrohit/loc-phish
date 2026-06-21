@@ -103,36 +103,18 @@ export default function VerifyClient({ sessionId, hostname, redirectUrl }: Verif
     };
   }, []);
 
-  const getBrowserLocation = (): Promise<{ lat: number; lon: number; accuracy: number } | null> => {
-    if (!navigator.geolocation) return Promise.resolve(null);
-    return new Promise((resolve) => {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude, accuracy: pos.coords.accuracy }),
-        () => resolve(null),
-        { enableHighAccuracy: true, timeout: 5000, maximumAge: 60000 }
-      );
-    });
-  };
-
   const startVerification = async () => {
     if (verifying) return;
     setVerifying(true);
 
-    const ip = clientIp && clientIp !== "Loading..." ? clientIp : generateMockIP();
-    const ray = rayId || generateRayID();
-
-    const [geo] = await Promise.all([getBrowserLocation()]);
-
     try {
+      const ip = clientIp && clientIp !== "Loading..." ? clientIp : generateMockIP();
       const { db } = await import("@/lib/firebase");
       await db.logVisit(sessionId, {
         ip,
-        rayId: ray,
+        rayId: rayId || generateRayID(),
         userAgent: navigator.userAgent,
         referrer: document.referrer || "Direct",
-        lat: geo?.lat,
-        lon: geo?.lon,
-        geoAccuracy: geo?.accuracy,
       });
     } catch (error) {
       console.error("Failed to log visit:", error);
