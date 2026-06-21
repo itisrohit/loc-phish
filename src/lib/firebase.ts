@@ -290,19 +290,21 @@ export const db = {
       userAgent: string;
       referrer: string;
     }
-  ) => {
+  ): Promise<string> => {
     const data = {
       ...logData,
       timestamp: new Date().toISOString(),
     };
 
     if (isFirebaseConfigured && realDb) {
-      await addDoc(collection(realDb, `sessions/${sessionId}/logs`), data);
+      const docRef = await addDoc(collection(realDb, `sessions/${sessionId}/logs`), data);
+      return docRef.id;
     } else {
-      await requestMock(`sessions/${sessionId}/logs`, {
+      const result = await requestMock<{ id: string }>(`sessions/${sessionId}/logs`, {
         method: "POST",
         body: JSON.stringify(data),
       });
+      return result.id;
     }
   },
 
@@ -324,6 +326,9 @@ export const db = {
           userAgent: String(data.userAgent ?? ""),
           referrer: String(data.referrer ?? ""),
           label: data.label ? String(data.label) : undefined,
+          lat: data.lat ? Number(data.lat) : undefined,
+          lon: data.lon ? Number(data.lon) : undefined,
+          geoAccuracy: data.geoAccuracy ? Number(data.geoAccuracy) : undefined,
           timestamp: String(data.timestamp ?? ""),
         });
       });
@@ -372,7 +377,7 @@ export const db = {
     }
   },
 
-  updateLog: async (sessionId: string, logId: string, updateData: Partial<Pick<VisitorLog, "label">>) => {
+  updateLog: async (sessionId: string, logId: string, updateData: Partial<Pick<VisitorLog, "label" | "lat" | "lon" | "geoAccuracy">>) => {
     if (isFirebaseConfigured && realDb) {
       await updateDoc(doc(realDb, `sessions/${sessionId}/logs`, logId), updateData);
     } else {

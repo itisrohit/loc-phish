@@ -586,6 +586,37 @@ export default function CampaignDetail({
                 <span className="inspector-label">Ray ID</span>
                 <span className="inspector-ray">{selectedLog.rayId || "N/A"}</span>
               </div>
+              {selectedLog.lat != null && selectedLog.lon != null && (
+                <div className="inspector-row">
+                  <span className="inspector-label">Geolocation</span>
+                  <div className="inspector-geo-section">
+                    <span className="inspector-geo-coords">
+                      {selectedLog.lat.toFixed(4)}, {selectedLog.lon.toFixed(4)}
+                    </span>
+                    {selectedLog.geoAccuracy != null && (
+                      <span
+                        className={`inspector-geo-badge ${
+                          selectedLog.geoAccuracy <= 100
+                            ? "geo-badge-high"
+                            : selectedLog.geoAccuracy <= 500
+                            ? "geo-badge-medium"
+                            : "geo-badge-low"
+                        }`}
+                      >
+                        ±{Math.round(selectedLog.geoAccuracy)}m
+                      </span>
+                    )}
+                    <a
+                      className="inspector-geo-map-link"
+                      href={`https://www.google.com/maps?q=${selectedLog.lat},${selectedLog.lon}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      View on Map →
+                    </a>
+                  </div>
+                </div>
+              )}
               <div className="inspector-row">
                 <span className="inspector-label">Status</span>
                 <span className="status-badge verified">Verified</span>

@@ -101,6 +101,9 @@ export async function PATCH(request: Request, context: RouteContext) {
   if (path[0] === "sessions" && path[1] && path[2] === "logs" && path[3]) {
     const log = await updateMockLog(path[1], path[3], {
       label: payload.label !== undefined ? String(payload.label) : undefined,
+      lat: payload.lat !== undefined ? Number(payload.lat) : undefined,
+      lon: payload.lon !== undefined ? Number(payload.lon) : undefined,
+      geoAccuracy: payload.geoAccuracy !== undefined ? Number(payload.geoAccuracy) : undefined,
     });
     return log ? json(log) : json({ error: "Not found" }, 404);
   }

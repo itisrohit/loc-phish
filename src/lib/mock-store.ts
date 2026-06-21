@@ -170,7 +170,7 @@ export async function createMockLog(
 export async function updateMockLog(
   sessionId: string,
   logId: string,
-  patch: Partial<Pick<VisitorLog, "label">>
+  patch: Partial<Pick<VisitorLog, "label" | "lat" | "lon" | "geoAccuracy">>
 ) {
   const db = await readMockDb();
   const index = db.logs.findIndex((log) => log.sessionId === sessionId && log.id === logId);
