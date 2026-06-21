@@ -1,12 +1,12 @@
 <p align="center">
-  <strong>loc-phish</strong>
+  <strong style="font-size: 2em;">loc-phish</strong>
 </p>
 <p align="center">
   Private-use location phishing utility.<br>
   Cloudflare Turnstile verification page as redirect template.
 </p>
 
----
+
 
 ## Setup
 

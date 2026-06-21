@@ -42,5 +42,8 @@ build
 *.sln
 *.sw?
 
+# TypeScript
+*.tsbuildinfo
+
 # Vite (legacy)
 dist-ssr
