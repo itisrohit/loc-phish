@@ -47,7 +47,7 @@ export default function VerifyClient({ sessionId, hostname, redirectUrl }: Verif
 
   useEffect(() => {
     document.body.classList.add("verify-page-body");
-    document.title = "Just a moment...";
+    document.title = "Security Check";
     setRayId(generateRayID());
 
     const fetchIpify = async () => {
@@ -161,11 +161,12 @@ export default function VerifyClient({ sessionId, hostname, redirectUrl }: Verif
           </svg>
         </div>
 
-        <h1 className={styles.title}>Checking if the site connection is secure</h1>
-        <div className={styles.subHeading}>
-          <span>{hostname || window.location.hostname || "Website"}</span> needs to review the
-          security of your connection before proceeding.
-        </div>
+        <h1 className={styles.title}>Verifying you are human</h1>
+        <p className={styles.subHeading}>
+          This security check helps us protect{" "}
+          <span>{hostname || window.location.hostname || "this site"}</span> from automated traffic.
+          It will only take a moment.
+        </p>
 
         <div className={styles.turnstileContainer}>
           <div
@@ -232,14 +233,6 @@ export default function VerifyClient({ sessionId, hostname, redirectUrl }: Verif
               </div>
             </div>
           </div>
-        </div>
-
-        <div className={styles.infoSection}>
-          <h2 className={styles.infoTitle}>Why am I seeing this page?</h2>
-          <p className={styles.infoText}>
-            Requests from malicious applications can look like standard traffic. If you are a human
-            and not a bot, you can continue by passing the verification check.
-          </p>
         </div>
       </main>
 

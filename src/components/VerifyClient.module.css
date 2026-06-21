@@ -1,6 +1,6 @@
 :global(body.verify-page-body) {
   background-color: #ffffff;
-  color: #313131;
+  color: #1a1a2e;
   font-family:
     -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell,
     "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif !important;
@@ -12,7 +12,7 @@
   justify-content: space-between;
   padding: 36px 24px;
   overflow-x: hidden;
-  background-image: none;
+  margin: 0;
 }
 
 .shell,
@@ -21,38 +21,40 @@
 }
 
 .main {
-  max-width: 600px;
+  max-width: 690px;
   width: 100%;
-  margin: 12vh auto auto auto;
+  margin: 150px auto auto auto;
   padding: 0 12px;
 }
 
 .logoHeader {
-  margin-bottom: 30px;
+  margin-bottom: 28px;
 }
 
 .logoCloud {
+  display: block;
   height: 48px;
   fill: #f38020;
 }
 
 .title {
   font-size: 32px;
-  font-weight: 500;
+  font-weight: 400;
   color: #000000;
-  margin-bottom: 8px;
+  margin-bottom: 18px;
   letter-spacing: -0.5px;
 }
 
 .subHeading {
   font-size: 16px;
   color: #595959;
-  margin-bottom: 36px;
+  margin-bottom: 26px;
   font-weight: 400;
+  line-height: 1.45;
 }
 
 .turnstileContainer {
-  margin-bottom: 40px;
+  margin-bottom: 48px;
   min-height: 65px;
 }
 
@@ -216,33 +218,14 @@
   stroke-dashoffset: 0;
 }
 
-.infoSection {
-  border-top: 1px solid #eeeeee;
-  padding-top: 28px;
-  margin-top: 12px;
-}
-
-.infoTitle {
-  font-size: 15px;
-  font-weight: 500;
-  color: #313131;
-  margin-bottom: 8px;
-}
-
-.infoText {
-  color: #595959;
-  font-size: 13px;
-  margin-bottom: 16px;
-}
-
 .footer {
-  max-width: 600px;
+  max-width: 690px;
   width: 100%;
   margin: auto auto 20px auto;
   padding: 0 12px;
-  border-top: 1px solid #eeeeee;
-  padding-top: 20px;
-  color: #808080;
+  border-top: 1px solid #f0f0f0;
+  padding-top: 26px;
+  color: #8a8a8a;
   font-size: 12px;
   display: flex;
   flex-direction: column;
@@ -267,13 +250,13 @@
 .metaDetails {
   font-family: monospace;
   font-size: 11px;
-  color: #808080;
+  color: #8a8a8a;
   word-break: break-all;
   margin-top: 6px;
 }
 
 .metaDetails span {
-  color: #595959;
+  color: #6b6b6b;
 }
 
 .exitOverlay {
@@ -311,6 +294,71 @@
 .exitText {
   font-size: 15px;
   color: #313131;
+}
+
+@media (max-width: 768px) {
+  .main {
+    margin-top: 80px;
+  }
+
+  .title {
+    font-size: 26px;
+    margin-bottom: 14px;
+  }
+
+  .subHeading {
+    font-size: 15px;
+    margin-bottom: 22px;
+  }
+
+  .turnstileContainer {
+    margin-bottom: 36px;
+  }
+}
+
+@media (max-width: 480px) {
+  :global(body.verify-page-body) {
+    padding: 24px 16px;
+  }
+
+  .main {
+    margin-top: 40px;
+    padding: 0 4px;
+  }
+
+  .logoHeader {
+    margin-bottom: 22px;
+  }
+
+  .logoCloud {
+    height: 40px;
+  }
+
+  .title {
+    font-size: 22px;
+    margin-bottom: 12px;
+  }
+
+  .subHeading {
+    font-size: 14px;
+    margin-bottom: 20px;
+  }
+
+  .turnstileContainer {
+    margin-bottom: 28px;
+    display: flex;
+    justify-content: center;
+  }
+
+  .turnstileWidget {
+    width: 280px;
+    height: 60px;
+    padding: 0 12px;
+  }
+
+  .footer {
+    padding: 18px 4px 0;
+  }
 }
 
 @keyframes verify-spin {
