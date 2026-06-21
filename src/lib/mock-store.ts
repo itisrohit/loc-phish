@@ -151,7 +151,11 @@ export async function listMockLogs(sessionId: string) {
 
 export async function createMockLog(
   sessionId: string,
-  data: Pick<VisitorLog, "ip" | "rayId" | "userAgent" | "referrer">
+  data: Pick<VisitorLog, "ip" | "rayId" | "userAgent" | "referrer"> & {
+    lat?: number;
+    lon?: number;
+    geoAccuracy?: number;
+  }
 ) {
   const db = await readMockDb();
   const newLog: MockLog = {
