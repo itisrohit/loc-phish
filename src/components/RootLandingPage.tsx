@@ -24,8 +24,7 @@ export default function RootLandingPage() {
         </h1>
         
         <p className={styles.subtitle}>
-          A minimalist orchestration layer for security simulations. 
-          Identify internal vulnerabilities with surgical telemetry.
+          A modular phishing framework for controlled location assessment simulations.
         </p>
 
         <Link href="/dashboard" className={styles.getStartedBtn}>
